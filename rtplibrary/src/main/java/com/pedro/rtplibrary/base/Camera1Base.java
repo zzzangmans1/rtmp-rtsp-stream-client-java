@@ -106,6 +106,8 @@ public abstract class Camera1Base
     recordController = new RecordController();
   }
 
+  protected abstract void setReconnectionInfo(int retries, int delay);
+
   /**
    * Experimental
    */

@@ -101,6 +101,8 @@ public abstract class Camera2Base implements GetAacData, GetVideoData, GetMicrop
     recordController = new RecordController();
   }
 
+  protected abstract void setReconnectionInfo(int retries, int delay);
+
   /**
    * Experimental
    */

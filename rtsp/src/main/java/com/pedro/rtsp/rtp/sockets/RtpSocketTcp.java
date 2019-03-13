@@ -15,8 +15,8 @@ public class RtpSocketTcp extends BaseRtpSocket {
   private OutputStream outputStream;
   private byte tcpHeader[];
 
-  public RtpSocketTcp(ConnectCheckerRtsp connectCheckerRtsp) {
-    super(connectCheckerRtsp);
+  public RtpSocketTcp() {
+    super();
     tcpHeader = new byte[] { '$', 0, 0, 0 };
   }
 
@@ -26,13 +26,8 @@ public class RtpSocketTcp extends BaseRtpSocket {
   }
 
   @Override
-  public void sendFrame(RtpFrame rtpFrame) {
-    try {
-      sendFrameTCP(rtpFrame);
-    } catch (IOException e) {
-      Log.e(TAG, "TCP send error: ", e);
-      connectCheckerRtsp.onConnectionFailedRtsp("Error send packet, " + e.getMessage());
-    }
+  public void sendFrame(RtpFrame rtpFrame) throws IOException {
+    sendFrameTCP(rtpFrame);
   }
 
   @Override

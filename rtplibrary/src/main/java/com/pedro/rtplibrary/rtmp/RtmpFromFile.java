@@ -61,6 +61,11 @@ public class RtmpFromFile extends FromFileBase {
   }
 
   @Override
+  protected void setReconnectionInfo(int retries, int delay) {
+    srsFlvMuxer.setReconnectionInfo(retries, delay);
+  }
+
+  @Override
   public void setAuthorization(String user, String password) {
     srsFlvMuxer.setAuthorization(user, password);
   }

@@ -21,7 +21,7 @@ import java.util.regex.Pattern;
  * Created by pedro on 10/02/17.
  */
 
-public class RtspClient {
+public class RtspClient implements SendListener {
 
   private final String TAG = "RtspClient";
   private static final Pattern rtspUrlPattern =
@@ -40,10 +40,20 @@ public class RtspClient {
   private boolean tlsEnabled = false;
   private RtspSender rtspSender;
   private CommandsManager commandsManager;
+  //reconnection
+  private int reconnectionRetries = 0;
+  private int retriesUsed = reconnectionRetries;
+  private long reconnectionDelay = 0; //in milliseconds
 
   public RtspClient(ConnectCheckerRtsp connectCheckerRtsp) {
     this.connectCheckerRtsp = connectCheckerRtsp;
     commandsManager = new CommandsManager();
+  }
+
+  public void setReconnectionInfo(int retries, int delay) {
+    reconnectionRetries = retries;
+    retriesUsed = retries;
+    reconnectionDelay = delay;
   }
 
   public void setProtocol(Protocol protocol) {
@@ -103,10 +113,14 @@ public class RtspClient {
   }
 
   public void connect() {
+    connect(true);
+  }
+
+  public void connect(boolean resetRetries) {
+    if (resetRetries) retriesUsed = reconnectionRetries;
     if (!streaming) {
-      rtspSender = new RtspSender(connectCheckerRtsp, commandsManager.getProtocol(),
-          commandsManager.getSps(), commandsManager.getPps(), commandsManager.getVps(),
-          commandsManager.getSampleRate());
+      rtspSender = new RtspSender(this, commandsManager.getProtocol(), commandsManager.getSps(),
+          commandsManager.getPps(), commandsManager.getVps(), commandsManager.getSampleRate());
       thread = new Thread(new Runnable() {
         @Override
         public void run() {
@@ -177,11 +191,18 @@ public class RtspClient {
             rtspSender.setAudioPorts(audioPorts[0], audioPorts[1]);
             rtspSender.start();
             streaming = true;
+            retriesUsed = reconnectionRetries;
             connectCheckerRtsp.onConnectionSuccessRtsp();
           } catch (IOException | NullPointerException e) {
-            Log.e(TAG, "connection error", e);
-            connectCheckerRtsp.onConnectionFailedRtsp("Error configure stream, " + e.getMessage());
-            streaming = false;
+            if (retriesUsed > 0) {
+              retriesUsed--;
+              doRetry();
+            } else {
+              Log.e(TAG, "connection error", e);
+              connectCheckerRtsp.onConnectionFailedRtsp(
+                  "Error configure stream, " + e.getMessage());
+              streaming = false;
+            }
           }
         }
       });
@@ -189,7 +210,26 @@ public class RtspClient {
     }
   }
 
+  private void doRetry() {
+    try {
+      Thread.sleep(reconnectionDelay);
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
+    }
+    Log.i(TAG, "retry " + retriesUsed);
+    connect(false);
+  }
+
   public void disconnect() {
+    if (thread != null) {
+      thread.interrupt();
+      try {
+        thread.join(100);
+      } catch (InterruptedException e) {
+        thread.interrupt();
+      }
+    }
+    retriesUsed = 0;
     if (streaming) {
       streaming = false;
       rtspSender.stop();
@@ -221,5 +261,14 @@ public class RtspClient {
       rtspSender.sendAudioFrame(aacBuffer, info);
     }
   }
-}
 
+  @Override
+  public void onSendFailed() {
+    if (retriesUsed > 0) {
+      retriesUsed--;
+      doRetry();
+    } else {
+      connectCheckerRtsp.onConnectionFailedRtsp("Send packet error");
+    }
+  }
+}

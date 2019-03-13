@@ -32,6 +32,11 @@ public class RtspOnlyAudio extends OnlyAudioBase {
   }
 
   @Override
+  protected void setReconnectionInfo(int retries, int delay) {
+    rtspClient.setReconnectionInfo(retries, delay);
+  }
+
+  @Override
   public void setAuthorization(String user, String password) {
     rtspClient.setAuthorization(user, password);
   }

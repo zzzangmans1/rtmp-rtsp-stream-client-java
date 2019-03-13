@@ -55,6 +55,11 @@ public class RtspCamera1 extends Camera1Base {
     rtspClient = new RtspClient(connectCheckerRtsp);
   }
 
+  @Override
+  public void setReconnectionInfo(int retries, int delay) {
+    rtspClient.setReconnectionInfo(retries, delay);
+  }
+
   /**
    * Internet protocol used.
    *

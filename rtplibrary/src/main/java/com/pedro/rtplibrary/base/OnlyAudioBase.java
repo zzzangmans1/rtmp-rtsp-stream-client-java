@@ -24,6 +24,8 @@ public abstract class OnlyAudioBase implements GetAacData, GetMicrophoneData {
     audioEncoder = new AudioEncoder(this);
   }
 
+  protected abstract void setReconnectionInfo(int retries, int delay);
+
   /**
    * Basic auth developed to work with Wowza. No tested with other server
    *

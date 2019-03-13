@@ -62,6 +62,11 @@ public class RtmpCamera1 extends Camera1Base {
   }
 
   @Override
+  public void setReconnectionInfo(int retries, int delay) {
+    srsFlvMuxer.setReconnectionInfo(retries, delay);
+  }
+
+  @Override
   public void setAuthorization(String user, String password) {
     srsFlvMuxer.setAuthorization(user, password);
   }

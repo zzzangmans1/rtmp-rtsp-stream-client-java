@@ -69,6 +69,8 @@ public abstract class DisplayBase implements GetAacData, GetVideoData, GetMicrop
     recordController = new RecordController();
   }
 
+  protected abstract void setReconnectionInfo(int retries, int delay);
+
   /**
    * Basic auth developed to work with Wowza. No tested with other server
    *

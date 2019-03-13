@@ -828,6 +828,7 @@ public class RtmpConnection implements RtmpPublisher {
     } catch (InterruptedException e) {
       Thread.currentThread().interrupt();
     }
+    Log.i(TAG, "retry " + retriesUsed);
     return connect(url);
   }
 }

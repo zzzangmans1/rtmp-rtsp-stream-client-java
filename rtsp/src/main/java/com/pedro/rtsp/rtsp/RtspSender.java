@@ -10,8 +10,8 @@ import com.pedro.rtsp.rtp.packets.H264Packet;
 import com.pedro.rtsp.rtp.packets.H265Packet;
 import com.pedro.rtsp.rtp.packets.VideoPacketCallback;
 import com.pedro.rtsp.rtp.sockets.BaseRtpSocket;
-import com.pedro.rtsp.utils.ConnectCheckerRtsp;
 import com.pedro.rtsp.utils.RtpConstants;
+import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.ByteBuffer;
 import java.util.concurrent.BlockingQueue;
@@ -31,13 +31,15 @@ public class RtspSender implements VideoPacketCallback, AudioPacketCallback {
   private BlockingQueue<RtpFrame> rtpFrameBlockingQueue =
       new LinkedBlockingQueue<>(getCacheSize(10));
   private Thread thread;
+  private SendListener sendListener;
 
-  public RtspSender(ConnectCheckerRtsp connectCheckerRtsp, Protocol protocol, byte[] sps,
-      byte[] pps, byte[] vps, int sampleRate) {
+  public RtspSender(SendListener sendListener, Protocol protocol, byte[] sps, byte[] pps,
+      byte[] vps, int sampleRate) {
+    this.sendListener = sendListener;
     videoPacket =
         vps == null ? new H264Packet(sps, pps, this) : new H265Packet(sps, pps, vps, this);
     aacPacket = new AacPacket(sampleRate, this);
-    rtpSocket = BaseRtpSocket.getInstance(connectCheckerRtsp, protocol);
+    rtpSocket = BaseRtpSocket.getInstance(protocol);
     baseSenderReport = BaseSenderReport.getInstance(protocol);
   }
 
@@ -97,6 +99,8 @@ public class RtspSender implements VideoPacketCallback, AudioPacketCallback {
             RtpFrame rtpFrame = rtpFrameBlockingQueue.take();
             rtpSocket.sendFrame(rtpFrame);
             baseSenderReport.update(rtpFrame);
+          } catch (IOException e) {
+            sendListener.onSendFailed();
           } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
           }
