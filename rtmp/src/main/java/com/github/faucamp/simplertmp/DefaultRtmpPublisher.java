@@ -50,4 +50,8 @@ public class DefaultRtmpPublisher implements RtmpPublisher {
   public void setAuthorization(String user, String password) {
     rtmpConnection.setAuthorization(user, password);
   }
+
+  public void setReconnectionInfo(int retries, int delay) {
+    rtmpConnection.setReconnectionInfo(retries, delay);
+  }
 }

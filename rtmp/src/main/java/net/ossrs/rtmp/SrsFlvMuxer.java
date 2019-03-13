@@ -71,6 +71,10 @@ public class SrsFlvMuxer {
     publisher = new DefaultRtmpPublisher(connectCheckerRtmp);
   }
 
+  public void setReconnectionInfo(int retries, int delay) {
+    publisher.setReconnectionInfo(retries, delay);
+  }
+
   public void setProfileIop(byte profileIop) {
     this.profileIop = profileIop;
   }

@@ -1,7 +1,6 @@
 package com.github.faucamp.simplertmp.io;
 
 import android.util.Log;
-
 import com.github.faucamp.simplertmp.RtmpPublisher;
 import com.github.faucamp.simplertmp.Util;
 import com.github.faucamp.simplertmp.amf.AmfMap;
@@ -80,6 +79,11 @@ public class RtmpConnection implements RtmpPublisher {
   private String opaque = null;
   private boolean onAuth = false;
   private String netConnectionDescription;
+  private String url;
+  //reconnection info
+  private int reconnectionRetries = 0;
+  private int retriesUsed = reconnectionRetries;
+  private long reconnectionDelay = 0; //in milliseconds
 
   public RtmpConnection(ConnectCheckerRtmp connectCheckerRtmp) {
     this.connectCheckerRtmp = connectCheckerRtmp;
@@ -99,6 +103,7 @@ public class RtmpConnection implements RtmpPublisher {
 
   @Override
   public boolean connect(String url) {
+    this.url = url;
     Matcher rtmpMatcher = rtmpUrlPattern.matcher(url);
     if (rtmpMatcher.matches()) {
       tlsEnabled = rtmpMatcher.group(0).startsWith("rtmps");
@@ -144,8 +149,13 @@ public class RtmpConnection implements RtmpPublisher {
       Log.d(TAG, "connect(): handshake done");
     } catch (IOException e) {
       Log.e(TAG, "Error", e);
-      connectCheckerRtmp.onConnectionFailedRtmp("Connect error, " + e.getMessage());
-      return false;
+      if (retriesUsed > 0) {
+        retriesUsed--;
+        return doRetry();
+      } else {
+        connectCheckerRtmp.onConnectionFailedRtmp("Connect error, " + e.getMessage());
+        return false;
+      }
     }
 
     // Start the "main" handling thread
@@ -163,8 +173,13 @@ public class RtmpConnection implements RtmpPublisher {
 
   private boolean rtmpConnect() {
     if (connected) {
-      connectCheckerRtmp.onConnectionFailedRtmp("Already connected");
-      return false;
+      if (retriesUsed > 0) {
+        retriesUsed--;
+        return doRetry();
+      } else {
+        connectCheckerRtmp.onConnectionFailedRtmp("Already connected");
+        return false;
+      }
     }
 
     if (user != null && password != null) {
@@ -201,8 +216,14 @@ public class RtmpConnection implements RtmpPublisher {
     }
     if (!connected) {
       shutdown(true);
-      connectCheckerRtmp.onConnectionFailedRtmp("Fail to connect, time out");
+      if (retriesUsed > 0) {
+        retriesUsed--;
+        return doRetry();
+      } else {
+        connectCheckerRtmp.onConnectionFailedRtmp("Fail to connect, time out");
+      }
     }
+    if (connected) retriesUsed = reconnectionRetries;
     return connected;
   }
 
@@ -270,8 +291,13 @@ public class RtmpConnection implements RtmpPublisher {
   @Override
   public boolean publish(String type) {
     if (type == null) {
-      connectCheckerRtmp.onConnectionFailedRtmp("Null publish type");
-      return false;
+      if (retriesUsed > 0) {
+        retriesUsed--;
+        return doRetry();
+      } else {
+        connectCheckerRtmp.onConnectionFailedRtmp("Null publish type");
+        return false;
+      }
     }
     publishType = type;
     return createStream();
@@ -279,9 +305,14 @@ public class RtmpConnection implements RtmpPublisher {
 
   private boolean createStream() {
     if (!connected || currentStreamId != 0) {
-      connectCheckerRtmp.onConnectionFailedRtmp(
-          "Create stream failed, connected= " + connected + ", StreamId= " + currentStreamId);
-      return false;
+      if (retriesUsed > 0) {
+        retriesUsed--;
+        return doRetry();
+      } else {
+        connectCheckerRtmp.onConnectionFailedRtmp(
+            "Create stream failed, connected= " + connected + ", StreamId= " + currentStreamId);
+        return false;
+      }
     }
     netConnectionDescription = null;
 
@@ -319,11 +350,16 @@ public class RtmpConnection implements RtmpPublisher {
     }
     if (!publishPermitted) {
       shutdown(true);
-      if (netConnectionDescription != null && !netConnectionDescription.isEmpty()) {
-        connectCheckerRtmp.onConnectionFailedRtmp(netConnectionDescription);
+      if (retriesUsed > 0) {
+        retriesUsed--;
+        return doRetry();
       } else {
-        connectCheckerRtmp.onConnectionFailedRtmp(
-            "Error configure stream, publish permitted failed");
+        if (netConnectionDescription != null && !netConnectionDescription.isEmpty()) {
+          connectCheckerRtmp.onConnectionFailedRtmp(netConnectionDescription);
+        } else {
+          connectCheckerRtmp.onConnectionFailedRtmp(
+              "Error configure stream, publish permitted failed");
+        }
       }
     }
     return publishPermitted;
@@ -376,6 +412,13 @@ public class RtmpConnection implements RtmpPublisher {
       closeStream();
     }
     shutdown(true);
+  }
+
+  public void close(boolean reset) {
+    if (socket != null) {
+      closeStream();
+    }
+    shutdown(reset);
   }
 
   private void closeStream() {
@@ -447,6 +490,8 @@ public class RtmpConnection implements RtmpPublisher {
     salt = null;
     challenge = null;
     opaque = null;
+    url = null;
+    retriesUsed = reconnectionRetries;
   }
 
   @Override
@@ -505,8 +550,19 @@ public class RtmpConnection implements RtmpPublisher {
       // socket exception only issue one time.
       if (!socketExceptionCause.contentEquals(se.getMessage())) {
         socketExceptionCause = se.getMessage();
-        connectCheckerRtmp.onConnectionFailedRtmp("Error send packet: " + se.getMessage());
-        Log.e(TAG, "Caught SocketException during write loop, shutting down: " + se.getMessage());
+        if (retriesUsed > 0) {
+          retriesUsed--;
+          if (!doRetry() && connected) {
+            connectCheckerRtmp.onConnectionFailedRtmp("Error send packet: " + se.getMessage());
+            Log.e(TAG,
+                "Caught SocketException during write loop, shutting down: " + se.getMessage());
+            connected = false;
+          }
+        } else if (connected){
+          connectCheckerRtmp.onConnectionFailedRtmp("Error send packet: " + se.getMessage());
+          Log.e(TAG, "Caught SocketException during write loop, shutting down: " + se.getMessage());
+          connected = false;
+        }
       }
     } catch (IOException ioe) {
       Log.e(TAG, "Caught IOException during write loop, shutting down: " + ioe.getMessage());
@@ -576,9 +632,20 @@ public class RtmpConnection implements RtmpPublisher {
       } catch (EOFException eof) {
         Thread.currentThread().interrupt();
       } catch (IOException e) {
-        connectCheckerRtmp.onConnectionFailedRtmp("Error reading packet: " + e.getMessage());
-        Log.e(TAG, "Caught SocketException while reading/decoding packet, shutting down: "
-            + e.getMessage());
+        if (retriesUsed > 0) {
+          retriesUsed--;
+          if (!doRetry() && connected) {
+            connectCheckerRtmp.onConnectionFailedRtmp("Error reading packet: " + e.getMessage());
+            Log.e(TAG, "Caught SocketException while reading/decoding packet, shutting down: "
+                + e.getMessage());
+            connected = false;
+          }
+        } else if (connected){
+          connectCheckerRtmp.onConnectionFailedRtmp("Error reading packet: " + e.getMessage());
+          Log.e(TAG, "Caught SocketException while reading/decoding packet, shutting down: "
+              + e.getMessage());
+          connected = false;
+        }
       }
     }
   }
@@ -637,17 +704,39 @@ public class RtmpConnection implements RtmpPublisher {
               connectingLock.notifyAll();
             }
           } else {
-            connectCheckerRtmp.onConnectionFailedRtmp(description);
+            if (retriesUsed > 0) {
+              retriesUsed--;
+              if (!doRetry()) {
+                connectCheckerRtmp.onConnectionFailedRtmp(description);
+                connected = false;
+                synchronized (connectingLock) {
+                  connectingLock.notifyAll();
+                }
+              }
+            } else {
+              connectCheckerRtmp.onConnectionFailedRtmp(description);
+              connected = false;
+              synchronized (connectingLock) {
+                connectingLock.notifyAll();
+              }
+            }
+          }
+        } catch (Exception e) {
+          if (retriesUsed > 0) {
+            retriesUsed--;
+            if (!doRetry()) {
+              connectCheckerRtmp.onConnectionFailedRtmp(e.getMessage());
+              connected = false;
+              synchronized (connectingLock) {
+                connectingLock.notifyAll();
+              }
+            }
+          } else {
+            connectCheckerRtmp.onConnectionFailedRtmp(e.getMessage());
             connected = false;
             synchronized (connectingLock) {
               connectingLock.notifyAll();
             }
-          }
-        } catch (Exception e) {
-          connectCheckerRtmp.onConnectionFailedRtmp(e.getMessage());
-          connected = false;
-          synchronized (connectingLock) {
-            connectingLock.notifyAll();
           }
         }
         break;
@@ -724,5 +813,21 @@ public class RtmpConnection implements RtmpPublisher {
   public void setAuthorization(String user, String password) {
     this.user = user;
     this.password = password;
+  }
+
+  public void setReconnectionInfo(int retries, int delay) {
+    reconnectionRetries = retries;
+    retriesUsed = reconnectionRetries;
+    reconnectionDelay = delay;
+  }
+
+  private boolean doRetry() {
+    close(false);
+    try {
+      Thread.sleep(reconnectionDelay);
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
+    }
+    return connect(url);
   }
 }
