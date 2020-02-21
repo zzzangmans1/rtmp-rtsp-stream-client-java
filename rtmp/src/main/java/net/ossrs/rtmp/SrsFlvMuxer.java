@@ -917,13 +917,17 @@ public class SrsFlvMuxer {
     }
 
     public void writeVideoSample(final ByteBuffer bb, MediaCodec.BufferInfo bi) {
+      writeVideoSample(bb, 0, bi);
+    }
+
+    public void writeVideoSample(final ByteBuffer bb, int offset, MediaCodec.BufferInfo bi) {
       if (bi.size < 4) return;
 
       bb.rewind();  //Sometimes the position is not 0.
       int pts = (int) (bi.presentationTimeUs / 1000);
       int type = SrsCodecVideoAVCFrame.InterFrame;
       SrsFlvFrameBytes frame = avc.demuxAnnexb(bb, bi.size, true);
-      int nal_unit_type = frame.data.get(0) & 0x1f;
+      int nal_unit_type = frame.data.get(offset) & 0x1f;
       if (nal_unit_type == SrsAvcNaluType.IDR || bi.flags == MediaCodec.BUFFER_FLAG_KEY_FRAME) {
         type = SrsCodecVideoAVCFrame.KeyFrame;
       } else if (nal_unit_type == SrsAvcNaluType.SPS || nal_unit_type == SrsAvcNaluType.PPS) {
