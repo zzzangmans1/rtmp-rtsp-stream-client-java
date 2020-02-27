@@ -42,10 +42,10 @@ public class RtpSocketTcp extends BaseRtpSocket {
       outputStream.write(tcpHeader);
       outputStream.write(rtpFrame.getBuffer(), 0, len);
       outputStream.flush();
-      Log.i(TAG, "wrote packet: "
-          + (rtpFrame.getChannelIdentifier() == (byte) 2 ? "Video" : "Audio")
-          + ", size: "
-          + rtpFrame.getLength());
+      //Log.i(TAG, "wrote packet: "
+      //    + (rtpFrame.getChannelIdentifier() == (byte) 2 ? "Video" : "Audio")
+      //    + ", size: "
+      //    + rtpFrame.getLength());
     }
   }
 }

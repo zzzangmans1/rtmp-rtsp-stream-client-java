@@ -59,11 +59,11 @@ public class RtpSocketUdp extends BaseRtpSocket {
     } else {
       multicastSocketAudio.send(datagramPacket);
     }
-    Log.i(TAG, "wrote packet: "
-        + (rtpFrame.getChannelIdentifier() == (byte) 2 ? "Video" : "Audio")
-        + ", size: "
-        + rtpFrame.getLength()
-        + ", port: "
-        + rtpFrame.getRtpPort());
+    //Log.i(TAG, "wrote packet: "
+    //    + (rtpFrame.getChannelIdentifier() == (byte) 2 ? "Video" : "Audio")
+    //    + ", size: "
+    //    + rtpFrame.getLength()
+    //    + ", port: "
+    //    + rtpFrame.getRtpPort());
   }
 }
