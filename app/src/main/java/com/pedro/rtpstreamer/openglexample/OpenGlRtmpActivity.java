@@ -60,9 +60,11 @@ import com.pedro.encoder.input.gl.render.filters.object.GifObjectFilterRender;
 import com.pedro.encoder.input.gl.render.filters.object.ImageObjectFilterRender;
 import com.pedro.encoder.input.gl.render.filters.object.SurfaceFilterRender;
 import com.pedro.encoder.input.gl.render.filters.object.TextObjectFilterRender;
+import com.pedro.encoder.input.video.CameraHelper;
 import com.pedro.encoder.input.video.CameraOpenException;
 import com.pedro.encoder.utils.gl.TranslateTo;
 import com.pedro.rtplibrary.rtmp.RtmpCamera1;
+import com.pedro.rtplibrary.util.SensorRotationManager;
 import com.pedro.rtplibrary.view.OpenGlView;
 import com.pedro.rtpstreamer.R;
 import java.io.File;
@@ -92,6 +94,7 @@ public class OpenGlRtmpActivity extends AppCompatActivity
       + "/rtmp-rtsp-stream-client-java");
   private OpenGlView openGlView;
   private SpriteGestureController spriteGestureController = new SpriteGestureController();
+  private SensorRotationManager sensorRotationManager;
 
   @Override
   protected void onCreate(Bundle savedInstanceState) {
@@ -110,6 +113,13 @@ public class OpenGlRtmpActivity extends AppCompatActivity
     rtmpCamera1 = new RtmpCamera1(openGlView, this);
     openGlView.getHolder().addCallback(this);
     openGlView.setOnTouchListener(this);
+    sensorRotationManager =
+        new SensorRotationManager(this, new SensorRotationManager.RotationChangedListener() {
+          @Override
+          public void onRotationChanged(int rotation) {
+            rtmpCamera1.getGlInterface().setStreamRotation(rotation);
+          }
+        });
   }
 
   @Override
@@ -379,8 +389,8 @@ public class OpenGlRtmpActivity extends AppCompatActivity
     switch (view.getId()) {
       case R.id.b_start_stop:
         if (!rtmpCamera1.isStreaming()) {
-          if (rtmpCamera1.isRecording()
-              || rtmpCamera1.prepareAudio() && rtmpCamera1.prepareVideo()) {
+          if (rtmpCamera1.isRecording() || rtmpCamera1.prepareAudio() && rtmpCamera1.prepareVideo(
+              1280, 720, 30, 3000 * 1024, false, CameraHelper.getCameraOrientation(this))) {
             button.setText(R.string.stop_button);
             rtmpCamera1.startStream(etUrl.getText().toString());
           } else {
@@ -448,11 +458,13 @@ public class OpenGlRtmpActivity extends AppCompatActivity
 
   @Override
   public void surfaceChanged(SurfaceHolder surfaceHolder, int i, int i1, int i2) {
-    rtmpCamera1.startPreview();
+    rtmpCamera1.startPreview(1280, 720);
+    sensorRotationManager.start();
   }
 
   @Override
   public void surfaceDestroyed(SurfaceHolder surfaceHolder) {
+    sensorRotationManager.stop();
     if (rtmpCamera1.isRecording()) {
       rtmpCamera1.stopRecord();
       bRecord.setText(R.string.start_record);

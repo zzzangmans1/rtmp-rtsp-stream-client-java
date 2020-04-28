@@ -101,13 +101,14 @@ public class VideoEncoder extends BaseEncoder implements GetCameraData {
       //if you dont use mediacodec rotation you need swap width and height in rotation 90 or 270
       // for correct encoding resolution
       String resolution;
-      if (!hardwareRotation && (rotation == 90 || rotation == 270)) {
-        resolution = height + "x" + width;
-        videoFormat = MediaFormat.createVideoFormat(type, height, width);
-      } else {
+      //if (!hardwareRotation && (rotation == 90 || rotation == 270)) {
+      //  resolution = height + "x" + width;
+      //  videoFormat = MediaFormat.createVideoFormat(type, height, width);
+      //} else {
+
         resolution = width + "x" + height;
         videoFormat = MediaFormat.createVideoFormat(type, width, height);
-      }
+      //}
       Log.i(TAG, "Prepare video info: " + this.formatVideoEncoder.name() + ", " + resolution);
       videoFormat.setInteger(MediaFormat.KEY_COLOR_FORMAT,
           this.formatVideoEncoder.getFormatCodec());
