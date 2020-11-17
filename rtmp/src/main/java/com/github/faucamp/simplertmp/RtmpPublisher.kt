@@ -1,4 +1,4 @@
-package com.github.faucamp.simplertmp;
+package com.github.faucamp.simplertmp
 
 /**
  * Simple RTMP publisher, using vanilla Java networking (no NIO)
@@ -8,14 +8,14 @@ package com.github.faucamp.simplertmp;
  *
  * @author francois, leo
  */
-public interface RtmpPublisher {
+internal interface RtmpPublisher {
   /**
    * Issues an RTMP "connect" command and wait for the response.
    *
    * @param url specify the RTMP url
    * @return If succeeded return true else return false
    */
-  boolean connect(String url);
+  fun connect(url: String?): Boolean
 
   /**
    * Issues an RTMP "publish" command and write the media content stream packets (audio and video).
@@ -25,12 +25,12 @@ public interface RtmpPublisher {
    * @return If succeeded return true else return false
    * @throws IllegalStateException if the client is not connected to a RTMP server
    */
-  boolean publish(String publishType);
+  fun publish(publishType: String?): Boolean
 
   /**
    * Stop and close the current RTMP streaming client.
    */
-  void close();
+  fun close()
 
   /**
    * publish a video content packet to server
@@ -39,7 +39,7 @@ public interface RtmpPublisher {
    * @param size video stream byte size (not the whole length of byte array)
    * @param dts video stream decoding timestamp
    */
-  void publishVideoData(byte[] data, int size, int dts);
+  fun publishVideoData(data: ByteArray?, size: Int, dts: Int)
 
   /**
    * publish an audio content packet to server
@@ -48,7 +48,7 @@ public interface RtmpPublisher {
    * @param size audio stream byte size (not the whole length of byte array)
    * @param dts audio stream decoding timestamp
    */
-  void publishAudioData(byte[] data, int size, int dts);
+  fun publishAudioData(data: ByteArray?, size: Int, dts: Int)
 
   /**
    * set video resolution
@@ -56,9 +56,7 @@ public interface RtmpPublisher {
    * @param width video width
    * @param height video height
    */
-  void setVideoResolution(int width, int height);
-
-  void setAuthorization(String user, String password);
-
-  void setLogs(boolean enable);
+  fun setVideoResolution(width: Int, height: Int)
+  fun setAuthorization(user: String?, password: String?)
+  fun setLogs(enable: Boolean)
 }
