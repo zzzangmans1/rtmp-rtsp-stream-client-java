@@ -32,9 +32,9 @@ internal class AmfNumber @JvmOverloads constructor(var value: Double = 0.0) : Am
   }
 
   @Throws(IOException::class)
-  override fun writeTo(out: OutputStream) {
-    out.write(AmfType.NUMBER.value.toInt())
-    Util.writeDouble(out, value)
+  override fun writeTo(output: OutputStream) {
+    output.write(AmfType.NUMBER.value.toInt())
+    Util.writeDouble(output, value)
   }
 
   @Throws(IOException::class)

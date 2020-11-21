@@ -10,13 +10,13 @@ import java.io.OutputStream
  *
  * @author francois
  */
-internal interface AmfData {
+interface AmfData {
   /**
    * Write/Serialize this AMF data intance (Object/string/integer etc) to
    * the specified OutputStream
    */
   @Throws(IOException::class)
-  fun writeTo(out: OutputStream)
+  fun writeTo(output: OutputStream)
 
   /**
    * Read and parse bytes from the specified input stream to populate this

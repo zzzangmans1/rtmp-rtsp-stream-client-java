@@ -14,22 +14,22 @@ import java.io.OutputStream
 internal class AmfMap : AmfObject() {
 
   @Throws(IOException::class)
-  override fun writeTo(out: OutputStream) {
+  override fun writeTo(output: OutputStream) {
     // Begin the map/object/array/whatever exactly this is
-    out.write(AmfType.ECMA_MAP.value.toInt())
+    output.write(AmfType.ECMA_MAP.value.toInt())
 
     // Write the "array size"
-    Util.writeUnsignedInt32(out, properties.size)
+    Util.writeUnsignedInt32(output, properties.size)
 
     // Write key/value pairs in this object
     for ((key, value) in properties) {
       // The key must be a STRING type, and thus the "type-definition" byte is implied (not included in message)
-      AmfString.writeStringTo(out, key, true)
-      value.writeTo(out)
+      AmfString.writeStringTo(output, key, true)
+      value.writeTo(output)
     }
 
     // End the object
-    out.write(OBJECT_END_MARKER)
+    output.write(OBJECT_END_MARKER)
   }
 
   @Throws(IOException::class)
@@ -37,14 +37,14 @@ internal class AmfMap : AmfObject() {
     // Skip data type byte (we assume it's already read)
     val length = Util.readUnsignedInt32(input) // Seems this is always 0
     super.readFrom(input)
-    size += 4 // Add the bytes read for parsing the array size (length)
+    mSize += 4 // Add the bytes read for parsing the array size (length)
   }
 
-  override fun getSize(): Int {
-    if (size == -1) {
-      size = super.getSize()
-      size += 4 // array length bytes
-    }
-    return size
-  }
+//  override fun getSize(): Int {
+//    if (size == -1) {
+//      size = super.getSize()
+//      size += 4 // array length bytes
+//    }
+//    return size
+//  }
 }

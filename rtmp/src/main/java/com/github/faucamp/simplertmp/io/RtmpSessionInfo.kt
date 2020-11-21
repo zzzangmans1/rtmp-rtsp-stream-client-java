@@ -6,7 +6,7 @@ import java.util.concurrent.ConcurrentHashMap
 /**
  * @author francois
  */
-internal class RtmpSessionInfo {
+class RtmpSessionInfo {
   /** The (total) number of bytes read for this window (resets to 0 if the agreed-upon RTMP window acknowledgement size is reached)  */
   private var windowBytesRead = 0
 

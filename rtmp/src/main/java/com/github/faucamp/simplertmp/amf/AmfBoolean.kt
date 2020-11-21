@@ -16,9 +16,9 @@ internal class AmfBoolean @JvmOverloads constructor(var isValue: Boolean = false
   }
 
   @Throws(IOException::class)
-  override fun writeTo(out: OutputStream) {
-    out.write(AmfType.BOOLEAN.value.toInt())
-    out.write(if (isValue) 0x01 else 0x00)
+  override fun writeTo(output: OutputStream) {
+    output.write(AmfType.BOOLEAN.value.toInt())
+    output.write(if (isValue) 0x01 else 0x00)
   }
 
   @Throws(IOException::class)

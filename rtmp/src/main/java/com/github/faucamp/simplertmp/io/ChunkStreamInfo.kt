@@ -13,7 +13,7 @@ import kotlin.math.min
  *
  * @author francois, leo
  */
-internal class ChunkStreamInfo {
+class ChunkStreamInfo {
 
   companion object {
     const val RTMP_CID_PROTOCOL_CONTROL: Byte = 0x02
@@ -57,7 +57,7 @@ internal class ChunkStreamInfo {
   }
 
   fun canReusePrevHeaderTx(forMessageType: RtmpHeader.MessageType): Boolean {
-    return prevHeaderTx != null && prevHeaderTx!!.messageType == forMessageType
+    return prevHeaderTx?.messageType == forMessageType
   }
 
   /** Utility method for calculating & synchronizing transmitted timestamps  */
@@ -76,10 +76,10 @@ internal class ChunkStreamInfo {
   /** @return `true` if all packet data has been stored, or `false` if not
    */
   @Throws(IOException::class)
-  fun storePacketChunk(`in`: InputStream?, chunkSize: Int): Boolean {
+  fun storePacketChunk(input: InputStream, chunkSize: Int): Boolean {
     val remainingBytes = prevHeaderRx!!.packetLength - baos.size()
     val chunk = ByteArray(min(remainingBytes, chunkSize))
-    Util.readBytesUntilFull(`in`, chunk)
+    Util.readBytesUntilFull(input, chunk)
     baos.write(chunk)
     return baos.size() == prevHeaderRx!!.packetLength
   }

@@ -22,8 +22,8 @@ internal class AmfNull : AmfData {
   }
 
   @Throws(IOException::class)
-  override fun writeTo(out: OutputStream) {
-    out.write(AmfType.NULL.value.toInt())
+  override fun writeTo(output: OutputStream) {
+    output.write(AmfType.NULL.value.toInt())
   }
 
   override fun readFrom(input: InputStream) {

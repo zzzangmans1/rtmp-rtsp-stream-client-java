@@ -21,8 +21,8 @@ internal class AmfUndefined : AmfData {
   }
 
   @Throws(IOException::class)
-  override fun writeTo(out: OutputStream) {
-    out.write(AmfType.UNDEFINED.value.toInt())
+  override fun writeTo(output: OutputStream) {
+    output.write(AmfType.UNDEFINED.value.toInt())
   }
 
   override fun readFrom(input: InputStream) {

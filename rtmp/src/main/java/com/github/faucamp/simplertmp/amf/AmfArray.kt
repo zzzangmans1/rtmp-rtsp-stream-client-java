@@ -21,7 +21,7 @@ internal class AmfArray : AmfData {
   val length: Int
     get() = items.size
 
-  override fun writeTo(out: OutputStream) {
+  override fun writeTo(output: OutputStream) {
     throw UnsupportedOperationException("Not supported yet.")
   }
 

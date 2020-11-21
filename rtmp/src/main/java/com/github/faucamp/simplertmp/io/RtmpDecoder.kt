@@ -15,7 +15,7 @@ internal class RtmpDecoder(private val rtmpSessionInfo: RtmpSessionInfo) {
   }
 
   @Throws(IOException::class)
-  fun readPacket(inputStream: InputStream?): RtmpPacket? {
+  fun readPacket(inputStream: InputStream): RtmpPacket? {
     val header = RtmpHeader.readHeader(inputStream, rtmpSessionInfo)
     // Log.d(TAG, "readPacket(): header.messageType: " + header.getMessageType());
     val chunkStreamInfo = rtmpSessionInfo.getChunkStreamInfo(header.chunkStreamId)
