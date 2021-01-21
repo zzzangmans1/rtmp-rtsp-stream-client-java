@@ -2,6 +2,8 @@ package com.github.faucamp.simplertmp.io
 
 import android.util.Log
 import com.github.faucamp.simplertmp.packets.*
+import java.io.BufferedInputStream
+import java.io.ByteArrayInputStream
 import java.io.IOException
 import java.io.InputStream
 
@@ -16,26 +18,26 @@ internal class RtmpDecoder(private val rtmpSessionInfo: RtmpSessionInfo) {
 
   @Throws(IOException::class)
   fun readPacket(inputStream: InputStream): RtmpPacket? {
-    val header = RtmpHeader.readHeader(inputStream, rtmpSessionInfo)
-    // Log.d(TAG, "readPacket(): header.messageType: " + header.getMessageType());
+    var input = inputStream
+    val header = RtmpHeader.readHeader(input, rtmpSessionInfo)
     val chunkStreamInfo = rtmpSessionInfo.getChunkStreamInfo(header.chunkStreamId)
     chunkStreamInfo.setPrevHeaderRx(header)
     if (header.packetLength > rtmpSessionInfo.rxChunkSize) {
       // If the packet consists of more than one chunk,
       // store the chunks in the chunk stream until everything is read
-      if (!chunkStreamInfo.storePacketChunk(inputStream, rtmpSessionInfo.rxChunkSize)) {
+      if (!chunkStreamInfo.storePacketChunk(input, rtmpSessionInfo.rxChunkSize)) {
         // return null because of incomplete packet
         return null
       } else {
         // stored chunks complete packet, get the input stream of the chunk stream
-        chunkStreamInfo.storedPacketInputStream
+        input = chunkStreamInfo.storedPacketInputStream
       }
     }
     val rtmpPacket: RtmpPacket
     when (header.messageType) {
       RtmpHeader.MessageType.SET_CHUNK_SIZE -> {
         val setChunkSize = SetChunkSize(header)
-        setChunkSize.readBody(inputStream)
+        setChunkSize.readBody(input)
         Log.d(TAG, "readPacket(): Setting chunk size to: " + setChunkSize.chunkSize)
         rtmpSessionInfo.rxChunkSize = setChunkSize.chunkSize
         return null
@@ -51,7 +53,7 @@ internal class RtmpDecoder(private val rtmpSessionInfo: RtmpSessionInfo) {
       RtmpHeader.MessageType.ACKNOWLEDGEMENT -> rtmpPacket = Acknowledgement(header)
       else -> throw IOException("No packet body implementation for message type: " + header.messageType)
     }
-    rtmpPacket.readBody(inputStream)
+    rtmpPacket.readBody(input)
     return rtmpPacket
   }
 }

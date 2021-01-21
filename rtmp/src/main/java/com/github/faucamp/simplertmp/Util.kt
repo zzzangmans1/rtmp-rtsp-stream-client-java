@@ -84,14 +84,7 @@ object Util {
   }
 
   fun toHexString(raw: ByteArray?): String? {
-    if (raw == null) {
-      return null
-    }
-    val hex = StringBuilder(2 * raw.size)
-    for (b in raw) {
-      hex.append(HEXES[(b and 0xF0.toByte()).toInt() shr 4]).append(HEXES[(b and 0x0F.toByte()).toInt()])
-    }
-    return hex.toString()
+    return raw?.joinToString("") { "%02x".format(it) }
   }
 
   fun toHexString(b: Byte): String {
