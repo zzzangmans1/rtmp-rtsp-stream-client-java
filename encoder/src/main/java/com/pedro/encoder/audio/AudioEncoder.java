@@ -34,6 +34,7 @@ public class AudioEncoder extends BaseEncoder implements GetMicrophoneData {
 
   public AudioEncoder(GetAacData getAacData) {
     this.getAacData = getAacData;
+    super.TAG = TAG;
   }
 
   /**
@@ -94,6 +95,7 @@ public class AudioEncoder extends BaseEncoder implements GetMicrophoneData {
     Log.i(TAG, "stopped");
   }
 
+  @Override
   public void reset() {
     stop(false);
     prepareAudioEncoder(bitRate, sampleRate, isStereo, maxInputSize);

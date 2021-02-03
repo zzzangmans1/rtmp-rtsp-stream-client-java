@@ -19,7 +19,7 @@ import java.util.concurrent.BlockingQueue;
  */
 public abstract class BaseEncoder implements EncoderCallback {
 
-  private static final String TAG = "BaseEncoder";
+  protected String TAG = "BaseEncoder";
   private final MediaCodec.BufferInfo bufferInfo = new MediaCodec.BufferInfo();
   private HandlerThread handlerThread;
   protected BlockingQueue<Frame> queue = new ArrayBlockingQueue<>(80);
@@ -51,8 +51,10 @@ public abstract class BaseEncoder implements EncoderCallback {
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
       createAsyncCallback();
       codec.setCallback(callback, handler);
+      Log.i(TAG, "start codec async");
       codec.start();
     } else {
+      Log.i(TAG, "start codec sync");
       codec.start();
       handler.post(new Runnable() {
         @Override
@@ -62,6 +64,10 @@ public abstract class BaseEncoder implements EncoderCallback {
               getDataFromEncoder();
             } catch (IllegalStateException e) {
               Log.i(TAG, "Encoding error", e);
+              if (running) {
+                Log.e(TAG, "unexpected codec state. Reset codec");
+                reset();
+              }
             }
           }
         }
@@ -69,6 +75,8 @@ public abstract class BaseEncoder implements EncoderCallback {
     }
     running = true;
   }
+
+  public abstract void reset();
 
   public abstract void start(boolean resetTs);
 
@@ -113,6 +121,7 @@ public abstract class BaseEncoder implements EncoderCallback {
     queue.clear();
     queue = new ArrayBlockingQueue<>(80);
     try {
+      Log.i(TAG, "stop codec");
       codec.stop();
       codec.release();
       codec = null;
@@ -233,6 +242,9 @@ public abstract class BaseEncoder implements EncoderCallback {
       @Override
       public void onError(@NonNull MediaCodec mediaCodec, @NonNull MediaCodec.CodecException e) {
         Log.e(TAG, "Error", e);
+        if (e.isRecoverable()) {
+          Log.e(TAG, "Error is recoverable");
+        }
       }
 
       @Override
