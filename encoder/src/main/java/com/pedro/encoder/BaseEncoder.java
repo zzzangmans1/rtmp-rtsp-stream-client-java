@@ -64,10 +64,6 @@ public abstract class BaseEncoder implements EncoderCallback {
               getDataFromEncoder();
             } catch (IllegalStateException e) {
               Log.i(TAG, "Encoding error", e);
-              if (running) {
-                Log.e(TAG, "unexpected codec state. Reset codec");
-                reset();
-              }
             }
           }
         }
@@ -159,12 +155,11 @@ public abstract class BaseEncoder implements EncoderCallback {
       int inBufferIndex) throws IllegalStateException {
     try {
       Frame frame = getInputFrame();
-      while (frame == null) frame = getInputFrame();
+      if (frame == null) return;
       byteBuffer.clear();
-      int size = Math.min(frame.getSize(), byteBuffer.remaining());
-      byteBuffer.put(frame.getBuffer(), frame.getOffset(), size);
+      byteBuffer.put(frame.getBuffer(), frame.getOffset(), frame.getSize());
       long pts = System.nanoTime() / 1000 - presentTimeUs;
-      mediaCodec.queueInputBuffer(inBufferIndex, 0, size, pts, 0);
+      mediaCodec.queueInputBuffer(inBufferIndex, 0, frame.getSize(), pts, 0);
     } catch (InterruptedException e) {
       Thread.currentThread().interrupt();
     } catch (NullPointerException | IndexOutOfBoundsException e) {
