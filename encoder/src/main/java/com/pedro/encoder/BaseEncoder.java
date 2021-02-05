@@ -24,7 +24,7 @@ public abstract class BaseEncoder implements EncoderCallback {
   private HandlerThread handlerThread;
   protected BlockingQueue<Frame> queue = new ArrayBlockingQueue<>(80);
   protected MediaCodec codec;
-  protected static long presentTimeUs;
+  protected long presentTimeUs;
   protected volatile boolean running = false;
   protected boolean isBufferMode = true;
   protected CodecUtil.Force force = CodecUtil.Force.FIRST_COMPATIBLE_FOUND;
@@ -37,9 +37,7 @@ public abstract class BaseEncoder implements EncoderCallback {
   }
 
   public void start() {
-    if (presentTimeUs == 0) {
-      presentTimeUs = System.nanoTime() / 1000;
-    }
+    presentTimeUs = System.nanoTime() / 1000;
     start(true);
     initCodec();
   }
