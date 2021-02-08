@@ -7,9 +7,12 @@ import android.os.Build;
 import android.os.Handler;
 import android.os.HandlerThread;
 import android.util.Log;
+
 import androidx.annotation.NonNull;
 import androidx.annotation.RequiresApi;
+
 import com.pedro.encoder.utils.CodecUtil;
+
 import java.nio.ByteBuffer;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
@@ -37,7 +40,6 @@ public abstract class BaseEncoder implements EncoderCallback {
   }
 
   public void start() {
-    presentTimeUs = System.nanoTime() / 1000;
     start(true);
     initCodec();
   }
@@ -49,10 +51,8 @@ public abstract class BaseEncoder implements EncoderCallback {
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
       createAsyncCallback();
       codec.setCallback(callback, handler);
-      Log.i(TAG, "start codec async");
       codec.start();
     } else {
-      Log.i(TAG, "start codec sync");
       codec.start();
       handler.post(new Runnable() {
         @Override
@@ -85,13 +85,6 @@ public abstract class BaseEncoder implements EncoderCallback {
   }
 
   public void stop() {
-    stop(true);
-  }
-
-  public void stop(boolean resetTs) {
-    if (resetTs) {
-      presentTimeUs = 0;
-    }
     running = false;
     stopImp();
     if (handlerThread != null) {
@@ -235,9 +228,6 @@ public abstract class BaseEncoder implements EncoderCallback {
       @Override
       public void onError(@NonNull MediaCodec mediaCodec, @NonNull MediaCodec.CodecException e) {
         Log.e(TAG, "Error", e);
-        if (e.isRecoverable()) {
-          Log.e(TAG, "Error is recoverable");
-        }
       }
 
       @Override

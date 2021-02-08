@@ -52,11 +52,10 @@ public class VideoEncoder extends BaseEncoder implements GetCameraData {
 
   public VideoEncoder(GetVideoData getVideoData) {
     this.getVideoData = getVideoData;
-    super.TAG = TAG;
   }
 
   public boolean prepareVideoEncoder(int width, int height, int fps, int bitRate, int rotation,
-      int iFrameInterval, FormatVideoEncoder formatVideoEncoder) {
+                                     int iFrameInterval, FormatVideoEncoder formatVideoEncoder) {
     return prepareVideoEncoder(width, height, fps, bitRate, rotation, iFrameInterval,
         formatVideoEncoder, -1, -1);
   }
@@ -65,8 +64,8 @@ public class VideoEncoder extends BaseEncoder implements GetCameraData {
    * Prepare encoder with custom parameters
    */
   public boolean prepareVideoEncoder(int width, int height, int fps, int bitRate, int rotation,
-      int iFrameInterval, FormatVideoEncoder formatVideoEncoder, int avcProfile,
-      int avcProfileLevel) {
+                                     int iFrameInterval, FormatVideoEncoder formatVideoEncoder, int avcProfile,
+                                     int avcProfileLevel) {
     this.width = width;
     this.height = height;
     this.fps = fps;
@@ -140,7 +139,6 @@ public class VideoEncoder extends BaseEncoder implements GetCameraData {
       return true;
     } catch (IOException | IllegalStateException e) {
       Log.e(TAG, "Create VideoEncoder failed.", e);
-      this.stop();
       return false;
     }
   }
@@ -159,6 +157,7 @@ public class VideoEncoder extends BaseEncoder implements GetCameraData {
   public void start(boolean resetTs) {
     spsPpsSetted = false;
     if (resetTs) {
+      presentTimeUs = System.nanoTime() / 1000;
       fpsLimiter.setFPS(fps);
     }
     if (formatVideoEncoder != FormatVideoEncoder.SURFACE) {
@@ -175,9 +174,8 @@ public class VideoEncoder extends BaseEncoder implements GetCameraData {
     Log.i(TAG, "stopped");
   }
 
-  @Override
   public void reset() {
-    stop(false);
+    stop();
     prepareVideoEncoder(width, height, fps, bitRate, rotation, iFrameInterval, formatVideoEncoder,
         avcProfile, avcProfileLevel);
     restart();
@@ -429,7 +427,7 @@ public class VideoEncoder extends BaseEncoder implements GetCameraData {
 
   @Override
   protected void checkBuffer(@NonNull ByteBuffer byteBuffer,
-      @NonNull MediaCodec.BufferInfo bufferInfo) {
+                             @NonNull MediaCodec.BufferInfo bufferInfo) {
     fixTimeStamp(bufferInfo);
     if ((bufferInfo.flags & MediaCodec.BUFFER_FLAG_CODEC_CONFIG) != 0) {
       if (!spsPpsSetted) {
@@ -445,7 +443,7 @@ public class VideoEncoder extends BaseEncoder implements GetCameraData {
 
   @Override
   protected void sendBuffer(@NonNull ByteBuffer byteBuffer,
-      @NonNull MediaCodec.BufferInfo bufferInfo) {
+                            @NonNull MediaCodec.BufferInfo bufferInfo) {
     if (formatVideoEncoder == FormatVideoEncoder.SURFACE) {
       bufferInfo.presentationTimeUs = System.nanoTime() / 1000 - presentTimeUs;
     }
