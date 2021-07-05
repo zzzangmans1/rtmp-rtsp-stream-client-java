@@ -170,6 +170,7 @@ open class RtspSender(private val connectCheckerRtsp: ConnectCheckerRtsp) : Vide
     resetSentVideoFrames()
     resetDroppedAudioFrames()
     resetDroppedVideoFrames()
+    Log.i(TAG, "stop rtpSender")
   }
 
   fun hasCongestion(): Boolean {

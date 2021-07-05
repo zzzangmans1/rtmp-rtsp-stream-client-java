@@ -275,6 +275,7 @@ open class RtspClient(private val connectCheckerRtsp: ConnectCheckerRtsp) {
   }
 
   private fun disconnect(clear: Boolean) {
+    Log.i(TAG, "disconnect rtsp")
     if (isStreaming) rtspSender.stop()
     reader?.close()
     reader = null
@@ -285,6 +286,7 @@ open class RtspClient(private val connectCheckerRtsp: ConnectCheckerRtsp) {
       writer?.flush()
       thread?.join(100)
     } catch (e: Exception) { }
+    Log.i(TAG, "write teardown")
     thread = HandlerThread(TAG)
     thread?.start()
     thread?.let {
@@ -324,11 +326,13 @@ open class RtspClient(private val connectCheckerRtsp: ConnectCheckerRtsp) {
       thread = null
       semaphore.release()
     } catch (e: Exception) { }
+    Log.i(TAG, "write teardown finished")
     if (clear) {
       reTries = numRetry
       doingRetry = false
       isStreaming = false
       connectCheckerRtsp.onDisconnectRtsp()
+      Log.i(TAG, "disconnect finished")
     }
   }
 

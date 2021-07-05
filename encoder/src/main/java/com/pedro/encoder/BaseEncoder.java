@@ -99,6 +99,7 @@ public abstract class BaseEncoder implements EncoderCallback {
   }
 
   public void stop(boolean resetTs) {
+    Log.i(TAG, "stop encoder");
     if (resetTs) {
       presentTimeUs = 0;
     }
@@ -132,6 +133,7 @@ public abstract class BaseEncoder implements EncoderCallback {
       codec = null;
     }
     oldTimeStamp = 0L;
+    Log.i(TAG, "encoder stopped");
   }
 
   protected abstract MediaCodecInfo chooseEncoder(String mime);
