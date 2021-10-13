@@ -409,13 +409,25 @@ public class OpenGlRtmpActivity extends AppCompatActivity
     });
   }
 
+  int test = 0;
+
+  private Boolean prepareVideo() {
+    if (test == 0) {
+      test++;
+      return rtmpCamera1.prepareVideo();
+    } else {
+      test = 0;
+      return rtmpCamera1.prepareVideo(1280, 720, 1200 * 1024);
+    }
+  }
+
   @Override
   public void onClick(View view) {
     switch (view.getId()) {
       case R.id.b_start_stop:
         if (!rtmpCamera1.isStreaming()) {
           if (rtmpCamera1.isRecording()
-              || rtmpCamera1.prepareAudio() && rtmpCamera1.prepareVideo()) {
+              || rtmpCamera1.prepareAudio() && prepareVideo()) {
             button.setText(R.string.stop_button);
             rtmpCamera1.startStream(etUrl.getText().toString());
           } else {
