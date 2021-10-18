@@ -1,11 +1,13 @@
 package com.pedro.rtplibrary.custom.audio
 
+import com.pedro.encoder.input.audio.GetMicrophoneData
+
 /**
  * Created by pedro on 18/10/21.
  */
-class NoAudioSource: AudioSource {
+class NoAudioSource(microphoneData: GetMicrophoneData): AudioSource {
 
-  override fun prepare(sampleRate: Int, channels: Int) {
+  override fun prepare() {
   }
 
   override fun start() {

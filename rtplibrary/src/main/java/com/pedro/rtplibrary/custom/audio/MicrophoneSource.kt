@@ -7,10 +7,10 @@ import com.pedro.encoder.input.audio.MicrophoneManager
 /**
  * Created by pedro on 18/10/21.
  */
-class MicrophoneSource(private val sampleRate: Int = 32000, private val isStereo: Boolean = true, private val echoCanceler: Boolean = false,
-  private val noiseSuppressor: Boolean = false): AudioSource, GetMicrophoneData {
+class MicrophoneSource(microphoneData: GetMicrophoneData, private val sampleRate: Int = 32000, private val isStereo: Boolean = true, private val echoCanceler: Boolean = false,
+  private val noiseSuppressor: Boolean = false): AudioSource {
 
-  private val microphoneManager = MicrophoneManager(this)
+  private val microphoneManager = MicrophoneManager(microphoneData)
 
   override fun prepare() {
     microphoneManager.createMicrophone(sampleRate, isStereo, echoCanceler, noiseSuppressor)
@@ -26,9 +26,5 @@ class MicrophoneSource(private val sampleRate: Int = 32000, private val isStereo
 
   override fun isRunning(): Boolean {
     return microphoneManager.isRunning
-  }
-
-  override fun inputPCMData(frame: Frame?) {
-
   }
 }

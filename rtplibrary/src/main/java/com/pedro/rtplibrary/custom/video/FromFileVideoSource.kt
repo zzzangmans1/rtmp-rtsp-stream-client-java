@@ -9,7 +9,7 @@ import com.pedro.encoder.input.decoder.VideoDecoderInterface
 /**
  * Created by pedro on 18/10/21.
  */
-class FromFileSource(private val path: String, private var surfaceTexture: SurfaceTexture,
+class FromFileVideoSource(private val path: String, private var surfaceTexture: SurfaceTexture,
   private val loopMode: Boolean = false):
   VideoSource, VideoDecoderInterface, LoopFileInterface {
 

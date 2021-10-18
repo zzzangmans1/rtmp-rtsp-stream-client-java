@@ -5,8 +5,10 @@ import android.media.MediaCodec
 import android.media.MediaFormat
 import android.os.Build
 import androidx.annotation.RequiresApi
+import com.pedro.encoder.Frame
 import com.pedro.encoder.audio.AudioEncoder
 import com.pedro.encoder.audio.GetAacData
+import com.pedro.encoder.input.audio.GetMicrophoneData
 import com.pedro.encoder.video.GetVideoData
 import com.pedro.encoder.video.VideoEncoder
 import com.pedro.rtplibrary.custom.audio.AudioSource
@@ -23,12 +25,12 @@ import java.nio.ByteBuffer
  * Customizable base to support Change Video and Audio source on fly.
  */
 @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
-class CustomBase: GetVideoData, GetAacData {
+class CustomBase: GetVideoData, GetAacData, GetMicrophoneData {
 
   private val videoEncoder = VideoEncoder(this)
   private val audioEncoder = AudioEncoder(this)
   private var videoSource: VideoSource = NoVideoSource()
-  private var audioSource: AudioSource = NoAudioSource()
+  private var audioSource: AudioSource = NoAudioSource(this)
   private var glInterface: GlInterface? = null
 
   constructor(openGlView: OpenGlView, videoSource: VideoSource, audioSource: AudioSource) {
@@ -73,6 +75,10 @@ class CustomBase: GetVideoData, GetAacData {
       this.audioSource.prepare()
       this.audioSource.start()
     }
+  }
+
+  override fun inputPCMData(frame: Frame?) {
+    TODO("Not yet implemented")
   }
 
   override fun onSpsPpsVps(sps: ByteBuffer?, pps: ByteBuffer?, vps: ByteBuffer?) {

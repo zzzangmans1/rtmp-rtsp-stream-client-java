@@ -16,10 +16,10 @@ import com.pedro.encoder.input.audio.MicrophoneManager
  * Created by pedro on 18/10/21.
  */
 @RequiresApi(api = Build.VERSION_CODES.Q)
-class InternalMicrophoneSource(private val mediaProjection: MediaProjection, private val sampleRate: Int = 32000,
-  private val isStereo: Boolean = true, private val echoCanceler: Boolean = false, private val noiseSuppressor: Boolean = false): AudioSource, GetMicrophoneData {
+class InternalMicrophoneSource(microphoneData: GetMicrophoneData, private val mediaProjection: MediaProjection, private val sampleRate: Int = 32000,
+  private val isStereo: Boolean = true, private val echoCanceler: Boolean = false, private val noiseSuppressor: Boolean = false): AudioSource {
 
-  private val microphoneManager = MicrophoneManager(this)
+  private val microphoneManager = MicrophoneManager(microphoneData)
 
   override fun prepare() {
     val config = AudioPlaybackCaptureConfiguration.Builder(mediaProjection)
@@ -38,10 +38,6 @@ class InternalMicrophoneSource(private val mediaProjection: MediaProjection, pri
 
   override fun isRunning(): Boolean {
     return microphoneManager.isRunning
-  }
-
-  override fun inputPCMData(frame: Frame?) {
-
   }
 
   fun askMediaProjection(context: Context): Intent {
