@@ -56,6 +56,9 @@ public abstract class BaseEncoder implements EncoderCallback {
   public void start() {
     if (presentTimeUs == 0) {
       presentTimeUs = System.nanoTime() / 1000;
+      Log.i("Pedro", "creating ts: " + presentTimeUs);
+    } else {
+      Log.i("Pedro", "ts already created: " + presentTimeUs);
     }
     start(true);
     initCodec();
@@ -95,6 +98,7 @@ public abstract class BaseEncoder implements EncoderCallback {
   protected abstract void stopImp();
 
   protected void fixTimeStamp(MediaCodec.BufferInfo info) {
+    info.presentationTimeUs = System.nanoTime() / 1000 - presentTimeUs;
     if (oldTimeStamp > info.presentationTimeUs) {
       info.presentationTimeUs = oldTimeStamp;
     } else {

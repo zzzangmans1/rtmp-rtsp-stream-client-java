@@ -877,6 +877,7 @@ public abstract class Camera1Base
 
   @Override
   public void getAacData(ByteBuffer aacBuffer, MediaCodec.BufferInfo info) {
+    Log.i("Pedro", "audio ts: " + info.presentationTimeUs);
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR2) {
       recordController.recordAudio(aacBuffer, info);
     }
@@ -894,6 +895,7 @@ public abstract class Camera1Base
 
   @Override
   public void getVideoData(ByteBuffer h264Buffer, MediaCodec.BufferInfo info) {
+    Log.i("Pedro", "video ts: " + info.presentationTimeUs);
     fpsListener.calculateFps();
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR2) {
       recordController.recordVideo(h264Buffer, info);
