@@ -20,6 +20,10 @@ class FromFileVideoSource(private val path: String, private var surfaceTexture: 
     this.surfaceTexture = surfaceTexture
   }
 
+  override fun setVideoInfo(width: Int, height: Int, fps: Int) {
+    TODO("Not yet implemented")
+  }
+
   override fun prepare() {
     videoDecoder.setLoopMode(loopMode)
     videoDecoder.initExtractor(path)

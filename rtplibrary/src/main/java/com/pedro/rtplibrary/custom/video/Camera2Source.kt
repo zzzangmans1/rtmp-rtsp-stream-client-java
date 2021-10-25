@@ -10,13 +10,22 @@ import com.pedro.encoder.input.video.Camera2ApiManager
  * Created by pedro on 18/10/21.
  */
 @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
-class Camera2Source(private val width: Int = 640, private val height: Int = 480, private val fps: Int = 30,
-  private var surfaceTexture: SurfaceTexture, private val context: Context): VideoSource {
+class Camera2Source(private val context: Context): VideoSource {
 
   var camera2ApiManager: Camera2ApiManager? = null
+  private var width: Int = 640
+  private var height: Int = 480
+  private var fps: Int = 30
+  private var surfaceTexture: SurfaceTexture? = null
 
   override fun setSurfaceTexture(surfaceTexture: SurfaceTexture) {
       this.surfaceTexture = surfaceTexture
+  }
+
+  override fun setVideoInfo(width: Int, height: Int, fps: Int) {
+    this.width = width
+    this.height = height
+    this.fps = fps
   }
 
   override fun prepare() {

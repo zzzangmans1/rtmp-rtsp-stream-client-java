@@ -9,6 +9,8 @@ interface VideoSource {
 
   fun setSurfaceTexture(surfaceTexture: SurfaceTexture)
 
+  fun setVideoInfo(width: Int, height: Int, fps: Int)
+
   fun prepare()
 
   fun start()

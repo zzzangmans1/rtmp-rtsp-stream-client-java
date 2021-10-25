@@ -31,6 +31,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.pedro.rtpstreamer.backgroundexample.BackgroundActivity;
+import com.pedro.rtpstreamer.custom.CustomModeRtmp;
 import com.pedro.rtpstreamer.customexample.RtmpActivity;
 import com.pedro.rtpstreamer.customexample.RtspActivity;
 import com.pedro.rtpstreamer.defaultexample.ExampleRtmpActivity;
@@ -113,6 +114,9 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
         getString(R.string.display_rtmp), LOLLIPOP));
     activities.add(new ActivityLink(new Intent(this, BackgroundActivity.class),
         getString(R.string.service_rtp), LOLLIPOP));
+    activities.add(
+        new ActivityLink(new Intent(this, CustomModeRtmp.class), getString(R.string.custom_mode),
+            LOLLIPOP));
   }
 
   private void setListAdapter(List<ActivityLink> activities) {

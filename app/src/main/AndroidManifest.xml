@@ -105,6 +105,11 @@
         />
     <activity
         android:name=".backgroundexample.BackgroundActivity"
+        android:label="@string/custom_mode"
+        />
+
+    <activity
+        android:name=".custom.CustomModeRtmp"
         android:label="@string/service_rtp"
         />
 
@@ -112,6 +117,10 @@
         />
 
     <service android:name=".displayexample.DisplayService"
+        android:foregroundServiceType="mediaProjection"
+        />
+
+    <service android:name=".custom.CustomService"
         android:foregroundServiceType="mediaProjection"
         />
   </application>

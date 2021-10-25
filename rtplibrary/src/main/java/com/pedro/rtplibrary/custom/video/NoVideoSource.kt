@@ -8,19 +8,27 @@ import android.graphics.SurfaceTexture
  */
 class NoVideoSource: VideoSource {
 
+  private var running = false
+
   override fun setSurfaceTexture(surfaceTexture: SurfaceTexture) {
+  }
+
+  override fun setVideoInfo(width: Int, height: Int, fps: Int) {
+
   }
 
   override fun prepare() {
   }
 
   override fun start() {
+    running = true
   }
 
   override fun stop() {
+    running = false
   }
 
   override fun isRunning(): Boolean {
-    return false
+    return running
   }
 }
