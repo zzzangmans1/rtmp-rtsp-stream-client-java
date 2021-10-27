@@ -12,6 +12,14 @@ class FromFileAudioSource(microphoneData: GetMicrophoneData, private val path: S
   private val audioDecoder = AudioDecoder(microphoneData, this, this)
   private var running = false
 
+  override fun setGetMicrophoneData(getMicrophoneData: GetMicrophoneData) {
+
+  }
+
+  override fun setAudioInfo(sampleRate: Int, isStereo: Boolean) {
+
+  }
+
   override fun prepare() {
     audioDecoder.setLoopMode(loopMode)
     audioDecoder.initExtractor(path)

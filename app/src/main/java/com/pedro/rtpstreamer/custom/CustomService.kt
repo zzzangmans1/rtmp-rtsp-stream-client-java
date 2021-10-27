@@ -14,6 +14,8 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.NotificationCompat
 import com.pedro.rtmp.utils.ConnectCheckerRtmp
 import com.pedro.rtplibrary.custom.audio.AudioSource
+import com.pedro.rtplibrary.custom.audio.InternalMicrophoneSource
+import com.pedro.rtplibrary.custom.audio.MicrophoneSource
 import com.pedro.rtplibrary.custom.audio.NoAudioSource
 import com.pedro.rtplibrary.custom.video.*
 import com.pedro.rtplibrary.rtmp.RtmpCustom
@@ -34,7 +36,7 @@ class CustomService: Service(), ConnectCheckerRtmp {
 
   private val TAG = "CustomService"
   private var rtmpCustom: RtmpCustom? = null
-  private var videoSource: VideoSource = NoVideoSource()
+  private var videoSource: VideoSource = Camera1Source(this)
   private var audioSource: AudioSource = NoAudioSource()
   private val mainHandler = Handler(Looper.getMainLooper())
 
@@ -47,7 +49,7 @@ class CustomService: Service(), ConnectCheckerRtmp {
   }
 
   override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-    Log.e(TAG, "RTP service started")
+    Log.i(TAG, "RTP service started")
     return START_STICKY
   }
 
@@ -96,6 +98,34 @@ class CustomService: Service(), ConnectCheckerRtmp {
     instance = null
   }
 
+  fun changeAudioSource(activity: Activity) {
+    if (audioSource is NoAudioSource) {
+      audioSource = MicrophoneSource()
+      rtmpCustom?.changeAudioSource(audioSource)
+      Log.i(TAG, "using microphone")
+    } else if (audioSource is MicrophoneSource) {
+      Log.i(TAG, "ask internal microphone")
+      val intent = InternalMicrophoneSource.askMediaProjection(this)
+      activity.startActivityForResult(intent , DISPLAY_CODE)
+    } else {
+      Log.i(TAG, "using no audio")
+      audioSource = NoAudioSource()
+      rtmpCustom?.changeAudioSource(audioSource)
+    }
+  }
+
+  @RequiresApi(api = Build.VERSION_CODES.Q)
+  fun changeAudioSource(requestCode: Int, resultCode: Int, data: Intent?) {
+    if (data != null && (requestCode == DISPLAY_CODE && resultCode == AppCompatActivity.RESULT_OK)) {
+      val mediaProjection = InternalMicrophoneSource.getMediaProjection(this, resultCode, data)
+      mediaProjection?.let {
+        Log.i(TAG, "using internal microphone")
+        audioSource = InternalMicrophoneSource(mediaProjection)
+        rtmpCustom?.changeAudioSource(audioSource)
+      }
+    }
+  }
+
   fun changeVideoSource(activity: Activity) {
     if (videoSource is NoVideoSource) {
       Log.i(TAG, "using camera1")
@@ -117,7 +147,7 @@ class CustomService: Service(), ConnectCheckerRtmp {
   }
 
   fun changeVideoSource(requestCode: Int, resultCode: Int, data: Intent?) {
-    if (data != null && (requestCode == 1 && resultCode == AppCompatActivity.RESULT_OK)) {
+    if (data != null && (requestCode == DISPLAY_CODE && resultCode == AppCompatActivity.RESULT_OK)) {
       val mediaProjection = DisplaySource.getMediaProjection(this, resultCode, data)
       mediaProjection?.let {
         Log.i(TAG, "using display")
@@ -171,6 +201,4 @@ class CustomService: Service(), ConnectCheckerRtmp {
   override fun onAuthSuccessRtmp() {
 
   }
-
-
 }

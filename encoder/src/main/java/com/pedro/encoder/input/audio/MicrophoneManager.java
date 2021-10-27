@@ -35,7 +35,7 @@ import java.nio.ByteBuffer;
 public class MicrophoneManager {
 
   private final String TAG = "MicrophoneManager";
-  private int BUFFER_SIZE = 0;
+  private int BUFFER_SIZE = 4096;
   protected AudioRecord audioRecord;
   private final GetMicrophoneData getMicrophoneData;
   protected ByteBuffer pcmBuffer = ByteBuffer.allocateDirect(BUFFER_SIZE);
@@ -236,7 +236,7 @@ public class MicrophoneManager {
    * Get PCM buffer size
    */
   private int getPcmBufferSize() {
-    BUFFER_SIZE = AudioRecord.getMinBufferSize(sampleRate, channel, audioFormat);
+    AudioRecord.getMinBufferSize(sampleRate, channel, audioFormat);
     pcmBuffer = ByteBuffer.allocateDirect(BUFFER_SIZE);
     pcmBufferMuted = new byte[BUFFER_SIZE];
     return BUFFER_SIZE * 5;

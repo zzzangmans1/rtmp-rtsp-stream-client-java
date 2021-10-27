@@ -87,6 +87,14 @@ public class AudioEncoder extends BaseEncoder implements GetMicrophoneData {
     }
   }
 
+  public int getSampleRate() {
+    return sampleRate;
+  }
+
+  public boolean isStereo() {
+    return isStereo;
+  }
+
   public void setGetFrame(GetFrame getFrame) {
     this.getFrame = getFrame;
   }

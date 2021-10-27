@@ -53,7 +53,7 @@ class CustomModeRtmp: AppCompatActivity(), SurfaceHolder.Callback {
       CustomService.instance?.toggleStartStream(url)
     }
     bSwitch.setOnClickListener {
-      CustomService.instance?.changeVideoSource(this)
+      CustomService.instance?.changeAudioSource(this)
     }
     CustomService.openGlView = view
     view.holder.addCallback(this)
@@ -61,7 +61,7 @@ class CustomModeRtmp: AppCompatActivity(), SurfaceHolder.Callback {
 
   override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
     super.onActivityResult(requestCode, resultCode, data)
-    CustomService.instance?.changeVideoSource(requestCode, resultCode, data)
+    CustomService.instance?.changeAudioSource(requestCode, resultCode, data)
   }
 
   override fun surfaceCreated(holder: SurfaceHolder) {

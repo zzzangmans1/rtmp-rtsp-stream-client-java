@@ -10,6 +10,7 @@ import com.pedro.encoder.audio.AudioEncoder
 import com.pedro.encoder.audio.GetAacData
 import com.pedro.encoder.input.audio.GetMicrophoneData
 import com.pedro.encoder.input.video.CameraHelper
+import com.pedro.encoder.utils.CodecUtil
 import com.pedro.encoder.video.FormatVideoEncoder
 import com.pedro.encoder.video.GetVideoData
 import com.pedro.encoder.video.VideoEncoder
@@ -22,8 +23,11 @@ import com.pedro.rtplibrary.custom.video.VideoSource
 import com.pedro.rtplibrary.util.FpsListener
 import com.pedro.rtplibrary.util.RecordController
 import com.pedro.rtplibrary.view.GlInterface
+import com.pedro.rtplibrary.view.LightOpenGlView
 import com.pedro.rtplibrary.view.OffScreenGlThread
 import com.pedro.rtplibrary.view.OpenGlView
+import java.io.IOException
+import java.lang.RuntimeException
 import java.nio.ByteBuffer
 
 /**
@@ -38,10 +42,10 @@ abstract class CustomBase: GetVideoData, GetAacData, GetMicrophoneData {
   private var videoSource: VideoSource = NoVideoSource()
   private var audioSource: AudioSource = NoAudioSource()
   private val context: Context
-  private var glInterface: GlInterface? = null
+  private var glInterface: GlInterface
   var streaming = false
   var onPreview = false
-  private var recordController: RecordController? = null
+  private val recordController = RecordController()
   private val fpsListener = FpsListener()
 
   constructor(openGlView: OpenGlView, videoSource: VideoSource, audioSource: AudioSource) {
@@ -60,8 +64,8 @@ abstract class CustomBase: GetVideoData, GetAacData, GetMicrophoneData {
 
   fun changeVideoSource(videoSource: VideoSource) {
     if (streaming) {
-      glInterface?.removeMediaCodecSurface()
-      glInterface?.stop()
+      glInterface.removeMediaCodecSurface()
+      glInterface.stop()
     }
     var shouldStart = false
     if (this.videoSource.isRunning()) {
@@ -72,15 +76,15 @@ abstract class CustomBase: GetVideoData, GetAacData, GetMicrophoneData {
       videoSource.stop()
     }
     videoSource.setVideoInfo(videoEncoder.width, videoEncoder.height, videoEncoder.fps)
-    glInterface?.surfaceTexture?.let {
+    glInterface.surfaceTexture?.let {
       videoSource.setSurfaceTexture(it)
     }
     if (streaming) {
       prepareGlInterface()
-      glInterface?.surfaceTexture?.let {
+      glInterface.surfaceTexture?.let {
         videoSource.setSurfaceTexture(it)
       }
-      glInterface?.addMediaCodecSurface(videoEncoder.inputSurface)
+      glInterface.addMediaCodecSurface(videoEncoder.inputSurface)
     }
     if (shouldStart) {
       videoSource.prepare()
@@ -98,11 +102,13 @@ abstract class CustomBase: GetVideoData, GetAacData, GetMicrophoneData {
     if (audioSource.isRunning()) {
       audioSource.stop()
     }
-    this.audioSource = audioSource
+    audioSource.setGetMicrophoneData(this)
+    audioSource.setAudioInfo(audioEncoder.sampleRate, audioEncoder.isStereo)
     if (shouldStart) {
-      this.audioSource.prepare()
-      this.audioSource.start()
+      audioSource.prepare()
+      audioSource.start()
     }
+    this.audioSource = audioSource
   }
 
   @JvmOverloads
@@ -117,23 +123,19 @@ abstract class CustomBase: GetVideoData, GetAacData, GetMicrophoneData {
   fun prepareAudio(sampleRate: Int = 32000, isStereo: Boolean = true,
     bitrate: Int = 64 * 1000): Boolean {
     prepareAudioRtp(isStereo, sampleRate)
-    return audioEncoder.prepareAudioEncoder(bitrate, sampleRate, isStereo, 0)
+    return audioEncoder.prepareAudioEncoder(bitrate, sampleRate, isStereo, 4096)
   }
 
   fun startStream(url: String) {
     if (!streaming) {
-      videoEncoder.start()
-      audioEncoder.start()
-      glInterface?.removeMediaCodecSurface()
-      glInterface?.stop()
-      prepareGlInterface()
-      // Link videoEncoder to videoSource to start produce video frames
-      glInterface?.addMediaCodecSurface(videoEncoder.inputSurface)
-      if (!onPreview) videoSource.start()
-      audioSource.start()
-      startStreamRtp(url)
       onPreview = true
       streaming = true
+      if (!recordController.isRunning) {
+        startEncoders()
+      } else {
+        requestKeyFrame()
+      }
+      startStreamRtp(url)
     }
   }
 
@@ -141,7 +143,9 @@ abstract class CustomBase: GetVideoData, GetAacData, GetMicrophoneData {
     if (streaming) {
       streaming = false
       stopStreamRtp()
-      glInterface?.removeMediaCodecSurface()
+    }
+    if (!recordController.isRecording) {
+      glInterface.removeMediaCodecSurface()
       audioSource.stop()
       videoEncoder.stop()
       audioEncoder.stop()
@@ -159,14 +163,10 @@ abstract class CustomBase: GetVideoData, GetAacData, GetMicrophoneData {
 
   fun stopPreview() {
     if (videoSource.isRunning() && !streaming) {
-      glInterface?.stop()
+      glInterface.stop()
       videoSource.stop()
       onPreview = false
     }
-  }
-
-  fun replaceGlInterface(glInterface: GlInterface) {
-    this.glInterface = glInterface
   }
 
     /**
@@ -176,22 +176,34 @@ abstract class CustomBase: GetVideoData, GetAacData, GetMicrophoneData {
     fpsListener.setCallback(callback)
   }
 
+  private fun startEncoders() {
+    videoEncoder.start()
+    audioEncoder.start()
+    glInterface.removeMediaCodecSurface()
+    glInterface.stop()
+    prepareGlInterface()
+    // Link videoEncoder to videoSource to start produce video frames
+    glInterface.addMediaCodecSurface(videoEncoder.inputSurface)
+    if (!onPreview) videoSource.start()
+    audioSource.start()
+  }
+
   // Link videoSource to preview and start preview
   private fun prepareGlInterface() {
-    glInterface?.init()
+    glInterface.init()
     val rotation = videoEncoder.rotation
     if (rotation == 90 || rotation == 270) {
-      glInterface?.setEncoderSize(videoEncoder.height, videoEncoder.width)
+      glInterface.setEncoderSize(videoEncoder.height, videoEncoder.width)
     } else {
-      glInterface?.setEncoderSize(videoEncoder.width, videoEncoder.height)
+      glInterface.setEncoderSize(videoEncoder.width, videoEncoder.height)
     }
-    glInterface?.setRotation(rotation)
-    glInterface?.start()
+    glInterface.setRotation(rotation)
+    glInterface.start()
     var shouldReset = videoSource.isRunning()
     // Display mode can't be reset because you need ask permissions again
     if (videoSource is DisplaySource) shouldReset = false
     if (shouldReset) videoSource.stop()
-    glInterface?.surfaceTexture?.let {
+    glInterface.surfaceTexture?.let {
       videoSource.setSurfaceTexture(it)
     }
     if (shouldReset) {
@@ -199,6 +211,149 @@ abstract class CustomBase: GetVideoData, GetAacData, GetMicrophoneData {
       videoSource.start()
     }
   }
+
+  /**
+   * Starts recording an MP4 video. Needs to be called while streaming.
+   *
+   * @param path Where file will be saved.
+   * @throws IOException If initialized before a stream.
+   */
+  @Throws(IOException::class)
+  fun startRecord(path: String, listener: RecordController.Listener? = null) {
+    recordController.startRecord(path, listener)
+    if (!streaming) {
+      startEncoders()
+    } else if (videoEncoder.isRunning) {
+      requestKeyFrame()
+    }
+  }
+
+  /**
+   * Stop record MP4 video started with @startRecord. If you don't call it file will be unreadable.
+   */
+  fun stopRecord() {
+    recordController.stopRecord()
+    if (!streaming) stopStream()
+  }
+
+  fun replaceView(context: Context) {
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR2) {
+      replaceGlInterface(OffScreenGlThread(context))
+    }
+  }
+
+  fun replaceView(openGlView: OpenGlView) {
+    replaceGlInterface(openGlView)
+  }
+
+  /**
+   * Replace glInterface used on fly. Ignored if you use SurfaceView or TextureView
+   */
+  private fun replaceGlInterface(glInterface: GlInterface) {
+    if (streaming || isRecording() || onPreview) {
+      videoSource.stop()
+//      cameraManager.stop()
+      this.glInterface.removeMediaCodecSurface()
+      this.glInterface.stop()
+      this.glInterface = glInterface
+      this.glInterface.init()
+      val isPortrait = CameraHelper.isPortrait(context)
+      if (isPortrait) {
+        this.glInterface.setEncoderSize(videoEncoder.height, videoEncoder.width)
+      } else {
+        this.glInterface.setEncoderSize(videoEncoder.width, videoEncoder.height)
+      }
+      this.glInterface.setRotation(0)
+      this.glInterface.start()
+      if (streaming || isRecording()) {
+        this.glInterface.addMediaCodecSurface(videoEncoder.inputSurface)
+      }
+      videoSource.setSurfaceTexture(glInterface.surfaceTexture)
+      videoSource.prepare()
+      videoSource.start()
+//      cameraManager.setSurfaceTexture(glInterface.surfaceTexture)
+//      cameraManager.setRotation(videoEncoder.rotation)
+//      cameraManager.start(videoEncoder.width, videoEncoder.height, videoEncoder.fps)
+    } else {
+      this.glInterface = glInterface
+      this.glInterface.init()
+    }
+  }
+
+  /**
+   * @param forceVideo force type codec used. FIRST_COMPATIBLE_FOUND, SOFTWARE, HARDWARE
+   * @param forceAudio force type codec used. FIRST_COMPATIBLE_FOUND, SOFTWARE, HARDWARE
+   */
+  fun setForce(forceVideo: CodecUtil.Force?, forceAudio: CodecUtil.Force?) {
+    videoEncoder.setForce(forceVideo)
+    audioEncoder.setForce(forceAudio)
+  }
+
+  protected fun requestKeyFrame() {
+    videoEncoder.requestKeyframe()
+  }
+
+  /**
+   * Get record state.
+   *
+   * @return true if recording, false if not recoding.
+   */
+  fun isRecording(): Boolean {
+    return recordController.isRunning
+  }
+
+  /**
+   * Retries to connect with the given delay. You can pass an optional backupUrl
+   * if you'd like to connect to your backup server instead of the original one.
+   * Given backupUrl replaces the original one.
+   */
+  @JvmOverloads
+  fun reTry(delay: Long, reason: String?, backupUrl: String? = null): Boolean {
+    val result = shouldRetry(reason)
+    if (result) {
+      requestKeyFrame()
+      reConnect(delay, backupUrl)
+    }
+    return result
+  }
+
+  /**
+   * @param user auth.
+   * @param password auth.
+   */
+  abstract fun setAuthorization(user: String?, password: String?)
+
+  protected abstract fun shouldRetry(reason: String?): Boolean
+
+  abstract fun setReTries(reTries: Int)
+
+  protected abstract fun reConnect(delay: Long, backupUrl: String?)
+
+  //cache control
+  abstract fun hasCongestion(): Boolean
+
+  @Throws(RuntimeException::class)
+  abstract fun resizeCache(newSize: Int)
+
+  abstract fun getCacheSize(): Int
+
+  abstract fun getSentAudioFrames(): Long
+
+  abstract fun getSentVideoFrames(): Long
+
+  abstract fun getDroppedAudioFrames(): Long
+
+  abstract fun getDroppedVideoFrames(): Long
+
+  abstract fun resetSentAudioFrames()
+
+  abstract fun resetSentVideoFrames()
+
+  abstract fun resetDroppedAudioFrames()
+
+  abstract fun resetDroppedVideoFrames()
+
+  abstract fun setLogs(enable: Boolean)
 
   protected abstract fun prepareAudioRtp(isStereo: Boolean, sampleRate: Int)
 
@@ -222,18 +377,20 @@ abstract class CustomBase: GetVideoData, GetAacData, GetMicrophoneData {
 
   override fun getVideoData(h264Buffer: ByteBuffer, info: MediaCodec.BufferInfo) {
     fpsListener.calculateFps()
+    recordController.recordVideo(h264Buffer, info)
     if (streaming) getH264DataRtp(h264Buffer, info)
   }
 
   override fun onVideoFormat(mediaFormat: MediaFormat?) {
-    recordController?.setVideoFormat(mediaFormat)
+    recordController.setVideoFormat(mediaFormat)
   }
 
   override fun getAacData(aacBuffer: ByteBuffer, info: MediaCodec.BufferInfo) {
+    recordController.recordAudio(aacBuffer, info)
     if (streaming) getAacDataRtp(aacBuffer, info)
   }
 
   override fun onAudioFormat(mediaFormat: MediaFormat?) {
-    recordController?.setAudioFormat(mediaFormat)
+    recordController.setAudioFormat(mediaFormat)
   }
 }
