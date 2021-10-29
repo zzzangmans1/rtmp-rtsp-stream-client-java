@@ -129,6 +129,7 @@ public class Camera2ApiManager extends CameraDevice.StateCallback {
   }
 
   public void prepareCamera(SurfaceTexture surfaceTexture, int width, int height, int fps) {
+    Log.i(TAG, width + "X" + height);
     surfaceTexture.setDefaultBufferSize(width, height);
     this.surfaceEncoder = new Surface(surfaceTexture);
     this.fps = fps;
@@ -196,7 +197,10 @@ public class Camera2ApiManager extends CameraDevice.StateCallback {
 
   private CaptureRequest drawSurface(List<Surface> surfaces) {
     try {
-      builderInputSurface = cameraDevice.createCaptureRequest(CameraDevice.TEMPLATE_PREVIEW);
+      int template = CameraDevice.TEMPLATE_PREVIEW;
+      if (isBackwardCompatible()) template = CameraDevice.TEMPLATE_RECORD;
+      Log.i(TAG, "template: " + template);
+      builderInputSurface = cameraDevice.createCaptureRequest(template);
       for (Surface surface : surfaces) if (surface != null) builderInputSurface.addTarget(surface);
       adaptFpsRange(fps, builderInputSurface);
       return builderInputSurface.build();
@@ -321,6 +325,24 @@ public class Camera2ApiManager extends CameraDevice.StateCallback {
       Log.e(TAG, "Error", e);
       return null;
     }
+  }
+
+  private boolean isBackwardCompatible() {
+    int[] capabilities = getCapabilities();
+    for (int i: capabilities) {
+      if (i == CameraCharacteristics.REQUEST_AVAILABLE_CAPABILITIES_BACKWARD_COMPATIBLE) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  private int[] getCapabilities() {
+    CameraCharacteristics characteristics = getCameraCharacteristics();
+    if (characteristics == null) {
+      return new int[]{};
+    }
+    return characteristics.get(CameraCharacteristics.REQUEST_AVAILABLE_CAPABILITIES);
   }
 
   public boolean enableVideoStabilization() {

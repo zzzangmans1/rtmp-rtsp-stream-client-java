@@ -82,6 +82,7 @@ import com.pedro.encoder.input.video.CameraOpenException;
 import com.pedro.encoder.utils.gl.TranslateTo;
 import com.pedro.rtmp.utils.ConnectCheckerRtmp;
 import com.pedro.rtplibrary.rtmp.RtmpCamera1;
+import com.pedro.rtplibrary.rtmp.RtmpCamera2;
 import com.pedro.rtplibrary.view.OpenGlView;
 import com.pedro.rtpstreamer.R;
 import com.pedro.rtpstreamer.utils.PathUtils;
@@ -102,7 +103,7 @@ public class OpenGlRtmpActivity extends AppCompatActivity
     implements ConnectCheckerRtmp, View.OnClickListener, SurfaceHolder.Callback,
     View.OnTouchListener {
 
-  private RtmpCamera1 rtmpCamera1;
+  private RtmpCamera2 rtmpCamera1;
   private Button button;
   private Button bRecord;
   private EditText etUrl;
@@ -127,7 +128,7 @@ public class OpenGlRtmpActivity extends AppCompatActivity
     switchCamera.setOnClickListener(this);
     etUrl = findViewById(R.id.et_rtp_url);
     etUrl.setHint(R.string.hint_rtmp);
-    rtmpCamera1 = new RtmpCamera1(openGlView, this);
+    rtmpCamera1 = new RtmpCamera2(openGlView, this);
     openGlView.getHolder().addCallback(this);
     openGlView.setOnTouchListener(this);
   }
@@ -415,7 +416,7 @@ public class OpenGlRtmpActivity extends AppCompatActivity
       case R.id.b_start_stop:
         if (!rtmpCamera1.isStreaming()) {
           if (rtmpCamera1.isRecording()
-              || rtmpCamera1.prepareAudio() && rtmpCamera1.prepareVideo()) {
+              || rtmpCamera1.prepareAudio() && rtmpCamera1.prepareVideo(1280, 720, 2000 * 1024)) {
             button.setText(R.string.stop_button);
             rtmpCamera1.startStream(etUrl.getText().toString());
           } else {
@@ -483,7 +484,7 @@ public class OpenGlRtmpActivity extends AppCompatActivity
 
   @Override
   public void surfaceChanged(SurfaceHolder surfaceHolder, int i, int i1, int i2) {
-    rtmpCamera1.startPreview();
+    rtmpCamera1.startPreview(1280, 720);
   }
 
   @Override
