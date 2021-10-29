@@ -422,7 +422,7 @@ public class OpenGlRtspActivity extends AppCompatActivity
       case R.id.b_start_stop:
         if (!rtspCamera1.isStreaming()) {
           if (rtspCamera1.isRecording()
-              || rtspCamera1.prepareAudio() && rtspCamera1.prepareVideo()) {
+              || rtspCamera1.prepareAudio() && rtspCamera1.prepareVideo(1280, 720, 2000 * 1024)) {
             button.setText(R.string.stop_button);
             rtspCamera1.startStream(etUrl.getText().toString());
           } else {
@@ -490,7 +490,7 @@ public class OpenGlRtspActivity extends AppCompatActivity
 
   @Override
   public void surfaceChanged(SurfaceHolder surfaceHolder, int i, int i1, int i2) {
-    rtspCamera1.startPreview();
+    rtspCamera1.startPreview(1280, 720);
   }
 
   @Override
