@@ -26,12 +26,16 @@ import android.media.MediaRecorder;
 import android.media.projection.MediaProjection;
 import android.media.projection.MediaProjectionManager;
 import android.os.Build;
+import android.util.Log;
 import android.view.Surface;
 import android.view.SurfaceView;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.annotation.RequiresApi;
+
+import com.pedro.encoder.BaseEncoder;
+import com.pedro.encoder.EncoderErrorCallback;
 import com.pedro.encoder.Frame;
 import com.pedro.encoder.audio.AudioEncoder;
 import com.pedro.encoder.audio.GetAacData;
@@ -65,8 +69,9 @@ import static android.content.Context.MEDIA_PROJECTION_SERVICE;
  * Created by pedro on 9/08/17.
  */
 @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
-public abstract class DisplayBase implements GetAacData, GetVideoData, GetMicrophoneData {
+public abstract class DisplayBase implements GetAacData, GetVideoData, GetMicrophoneData, EncoderErrorCallback {
 
+  private static final String TAG = "DisplayBase";
   private OffScreenGlThread glInterface;
   private MediaProjection mediaProjection;
   private final MediaProjectionManager mediaProjectionManager;
@@ -90,8 +95,8 @@ public abstract class DisplayBase implements GetAacData, GetVideoData, GetMicrop
     mediaProjectionManager =
         ((MediaProjectionManager) context.getSystemService(MEDIA_PROJECTION_SERVICE));
     this.surfaceView = null;
-    videoEncoder = new VideoEncoder(this);
-    audioEncoder = new AudioEncoder(this);
+    videoEncoder = new VideoEncoder(this, this);
+    audioEncoder = new AudioEncoder(this, this);
     //Necessary use same thread to read input buffer and encode it with internal audio or audio is choppy.
     setMicrophoneMode(MicrophoneMode.SYNC);
     recordController = new RecordController();
@@ -108,12 +113,12 @@ public abstract class DisplayBase implements GetAacData, GetVideoData, GetMicrop
     switch (microphoneMode) {
       case SYNC:
         microphoneManager = new MicrophoneManagerManual();
-        audioEncoder = new AudioEncoder(this);
+        audioEncoder = new AudioEncoder(this, this);
         audioEncoder.setGetFrame(((MicrophoneManagerManual) microphoneManager).getGetFrame());
         break;
       case ASYNC:
         microphoneManager = new MicrophoneManager(this);
-        audioEncoder = new AudioEncoder(this);
+        audioEncoder = new AudioEncoder(this, this);
         break;
     }
   }
@@ -617,6 +622,15 @@ public abstract class DisplayBase implements GetAacData, GetVideoData, GetMicrop
   @Override
   public void onAudioFormat(MediaFormat mediaFormat) {
     recordController.setAudioFormat(mediaFormat);
+  }
+
+  @Override
+  public void onEncoderError(BaseEncoder baseEncoder, Exception e) {
+    Log.e(TAG, "Encoder crashed, trying to recover it", e);
+    boolean isVideo = baseEncoder instanceof VideoEncoder;
+    if (isVideo && glInterface != null) glInterface.removeMediaCodecSurface();
+    baseEncoder.reset();
+    if (isVideo && glInterface != null) glInterface.addMediaCodecSurface(videoEncoder.getInputSurface());
   }
 
   public abstract void setLogs(boolean enable);

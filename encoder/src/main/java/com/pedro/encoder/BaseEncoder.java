@@ -36,6 +36,7 @@ import java.util.concurrent.BlockingQueue;
 public abstract class BaseEncoder implements EncoderCallback {
 
   protected String TAG = "BaseEncoder";
+  private EncoderErrorCallback encoderErrorCallback;
   private final MediaCodec.BufferInfo bufferInfo = new MediaCodec.BufferInfo();
   private HandlerThread handlerThread;
   protected BlockingQueue<Frame> queue = new ArrayBlockingQueue<>(80);
@@ -47,6 +48,10 @@ public abstract class BaseEncoder implements EncoderCallback {
   private MediaCodec.Callback callback;
   private long oldTimeStamp = 0L;
   protected boolean shouldReset = true;
+
+  public BaseEncoder(EncoderErrorCallback encoderErrorCallback) {
+    this.encoderErrorCallback = encoderErrorCallback;
+  }
 
   public void restart() {
     start(false);
@@ -79,7 +84,7 @@ public abstract class BaseEncoder implements EncoderCallback {
               getDataFromEncoder();
             } catch (IllegalStateException e) {
               Log.i(TAG, "Encoding error", e);
-              reloadCodec();
+              encoderErrorCallback.onEncoderError(BaseEncoder.this, e);
             }
           }
         }
@@ -99,14 +104,6 @@ public abstract class BaseEncoder implements EncoderCallback {
       info.presentationTimeUs = oldTimeStamp;
     } else {
       oldTimeStamp = info.presentationTimeUs;
-    }
-  }
-
-  private void reloadCodec() {
-    //Sometimes encoder crash, we will try recover it. Reset encoder a time if crash
-    if (shouldReset) {
-      Log.e(TAG, "Encoder crashed, trying to recover it");
-      reset();
     }
   }
 
@@ -244,8 +241,7 @@ public abstract class BaseEncoder implements EncoderCallback {
         try {
           inputAvailable(mediaCodec, inBufferIndex);
         } catch (IllegalStateException e) {
-          Log.i(TAG, "Encoding error", e);
-          reloadCodec();
+          encoderErrorCallback.onEncoderError(BaseEncoder.this, e);
         }
       }
 
@@ -255,14 +251,13 @@ public abstract class BaseEncoder implements EncoderCallback {
         try {
           outputAvailable(mediaCodec, outBufferIndex, bufferInfo);
         } catch (IllegalStateException e) {
-          Log.i(TAG, "Encoding error", e);
-          reloadCodec();
+          encoderErrorCallback.onEncoderError(BaseEncoder.this, e);
         }
       }
 
       @Override
       public void onError(@NonNull MediaCodec mediaCodec, @NonNull MediaCodec.CodecException e) {
-        Log.e(TAG, "Error", e);
+        encoderErrorCallback.onEncoderError(BaseEncoder.this, e);
       }
 
       @Override

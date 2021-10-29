@@ -33,6 +33,9 @@ import android.view.TextureView;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.annotation.RequiresApi;
+
+import com.pedro.encoder.BaseEncoder;
+import com.pedro.encoder.EncoderErrorCallback;
 import com.pedro.encoder.Frame;
 import com.pedro.encoder.audio.AudioEncoder;
 import com.pedro.encoder.audio.GetAacData;
@@ -73,7 +76,7 @@ import java.util.List;
  * Created by pedro on 7/07/17.
  */
 @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
-public abstract class Camera2Base implements GetAacData, GetVideoData, GetMicrophoneData {
+public abstract class Camera2Base implements GetAacData, GetVideoData, GetMicrophoneData, EncoderErrorCallback {
 
   private static final String TAG = "Camera2Base";
 
@@ -143,7 +146,7 @@ public abstract class Camera2Base implements GetAacData, GetVideoData, GetMicrop
 
   private void init(Context context) {
     cameraManager = new Camera2ApiManager(context);
-    videoEncoder = new VideoEncoder(this);
+    videoEncoder = new VideoEncoder(this, this);
     setMicrophoneMode(MicrophoneMode.ASYNC);
     recordController = new RecordController();
   }
@@ -159,12 +162,12 @@ public abstract class Camera2Base implements GetAacData, GetVideoData, GetMicrop
     switch (microphoneMode) {
       case SYNC:
         microphoneManager = new MicrophoneManagerManual();
-        audioEncoder = new AudioEncoder(this);
+        audioEncoder = new AudioEncoder(this, this);
         audioEncoder.setGetFrame(((MicrophoneManagerManual) microphoneManager).getGetFrame());
         break;
       case ASYNC:
         microphoneManager = new MicrophoneManager(this);
-        audioEncoder = new AudioEncoder(this);
+        audioEncoder = new AudioEncoder(this, this);
         break;
     }
   }
@@ -963,6 +966,15 @@ public abstract class Camera2Base implements GetAacData, GetVideoData, GetMicrop
   @Override
   public void onAudioFormat(MediaFormat mediaFormat) {
     recordController.setAudioFormat(mediaFormat);
+  }
+
+  @Override
+  public void onEncoderError(BaseEncoder baseEncoder, Exception e) {
+    Log.e(TAG, "Encoder crashed, trying to recover it", e);
+    boolean isVideo = baseEncoder instanceof VideoEncoder;
+    if (isVideo && glInterface != null) glInterface.removeMediaCodecSurface();
+    baseEncoder.reset();
+    if (isVideo && glInterface != null) glInterface.addMediaCodecSurface(videoEncoder.getInputSurface());
   }
 
   public abstract void setLogs(boolean enable);

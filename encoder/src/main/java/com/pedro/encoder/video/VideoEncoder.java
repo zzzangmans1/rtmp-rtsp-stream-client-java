@@ -30,6 +30,7 @@ import androidx.annotation.NonNull;
 import androidx.annotation.RequiresApi;
 
 import com.pedro.encoder.BaseEncoder;
+import com.pedro.encoder.EncoderErrorCallback;
 import com.pedro.encoder.Frame;
 import com.pedro.encoder.input.video.FpsLimiter;
 import com.pedro.encoder.input.video.GetCameraData;
@@ -69,7 +70,8 @@ public class VideoEncoder extends BaseEncoder implements GetCameraData {
   private int avcProfile = -1;
   private int avcProfileLevel = -1;
 
-  public VideoEncoder(GetVideoData getVideoData) {
+  public VideoEncoder(GetVideoData getVideoData, EncoderErrorCallback encoderErrorCallback) {
+    super(encoderErrorCallback);
     this.getVideoData = getVideoData;
     TAG = "VideoEncoder";
   }
@@ -456,9 +458,14 @@ public class VideoEncoder extends BaseEncoder implements GetCameraData {
     spsPpsSetted = true;
   }
 
+  int cont = 0;
   @Override
   protected void checkBuffer(@NonNull ByteBuffer byteBuffer,
       @NonNull MediaCodec.BufferInfo bufferInfo) {
+    if (System.nanoTime() / 1000 - presentTimeUs > 10000000 && cont == 0) {
+      cont++;
+      throw new IllegalStateException("wtf??");
+    }
     if (forceKey && Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
       forceKey = false;
       requestKeyframe();

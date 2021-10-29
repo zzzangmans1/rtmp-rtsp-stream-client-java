@@ -28,6 +28,9 @@ import android.util.Log;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.annotation.RequiresApi;
+
+import com.pedro.encoder.BaseEncoder;
+import com.pedro.encoder.EncoderErrorCallback;
 import com.pedro.encoder.Frame;
 import com.pedro.encoder.audio.AudioEncoder;
 import com.pedro.encoder.audio.GetAacData;
@@ -64,7 +67,7 @@ import java.nio.ByteBuffer;
 
 @RequiresApi(api = Build.VERSION_CODES.JELLY_BEAN_MR2)
 public abstract class FromFileBase
-    implements GetVideoData, GetAacData, GetMicrophoneData, LoopFileInterface {
+    implements GetVideoData, GetAacData, GetMicrophoneData, LoopFileInterface, EncoderErrorCallback {
 
   private static final String TAG = "FromFileBase";
 
@@ -120,8 +123,8 @@ public abstract class FromFileBase
       AudioDecoderInterface audioDecoderInterface) {
     this.videoDecoderInterface = videoDecoderInterface;
     this.audioDecoderInterface = audioDecoderInterface;
-    videoEncoder = new VideoEncoder(this);
-    audioEncoder = new AudioEncoder(this);
+    videoEncoder = new VideoEncoder(this, this);
+    audioEncoder = new AudioEncoder(this, this);
     videoDecoder = new VideoDecoder(videoDecoderInterface, this);
     audioDecoder = new AudioDecoder(this, audioDecoderInterface, this);
     recordController = new RecordController();
@@ -677,6 +680,15 @@ public abstract class FromFileBase
       audioTrackPlayer.write(frame.getBuffer(), frame.getOffset(), frame.getSize());
     }
     audioEncoder.inputPCMData(frame);
+  }
+
+  @Override
+  public void onEncoderError(BaseEncoder baseEncoder, Exception e) {
+    Log.e(TAG, "Encoder crashed, trying to recover it", e);
+    boolean isVideo = baseEncoder instanceof VideoEncoder;
+    if (isVideo && glInterface != null) glInterface.removeMediaCodecSurface();
+    baseEncoder.reset();
+    if (isVideo && glInterface != null) glInterface.addMediaCodecSurface(videoEncoder.getInputSurface());
   }
 
   public abstract void setLogs(boolean enable);

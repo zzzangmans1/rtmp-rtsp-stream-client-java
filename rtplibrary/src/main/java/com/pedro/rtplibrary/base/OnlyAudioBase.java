@@ -20,10 +20,14 @@ import android.media.MediaCodec;
 import android.media.MediaFormat;
 import android.media.MediaRecorder;
 import android.os.Build;
+import android.util.Log;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.annotation.RequiresApi;
+
+import com.pedro.encoder.BaseEncoder;
+import com.pedro.encoder.EncoderErrorCallback;
 import com.pedro.encoder.Frame;
 import com.pedro.encoder.audio.AudioEncoder;
 import com.pedro.encoder.audio.GetAacData;
@@ -32,6 +36,7 @@ import com.pedro.encoder.input.audio.GetMicrophoneData;
 import com.pedro.encoder.input.audio.MicrophoneManager;
 import com.pedro.encoder.input.audio.MicrophoneManagerManual;
 import com.pedro.encoder.input.audio.MicrophoneMode;
+import com.pedro.encoder.video.VideoEncoder;
 import com.pedro.rtplibrary.util.RecordController;
 
 import java.io.FileDescriptor;
@@ -43,8 +48,9 @@ import java.nio.ByteBuffer;
  *
  * Created by pedro on 10/07/18.
  */
-public abstract class OnlyAudioBase implements GetAacData, GetMicrophoneData {
+public abstract class OnlyAudioBase implements GetAacData, GetMicrophoneData, EncoderErrorCallback {
 
+  private static final String TAG = "OnlyAudioBase";
   private final RecordController recordController;
   private MicrophoneManager microphoneManager;
   private AudioEncoder audioEncoder;
@@ -66,12 +72,12 @@ public abstract class OnlyAudioBase implements GetAacData, GetMicrophoneData {
     switch (microphoneMode) {
       case SYNC:
         microphoneManager = new MicrophoneManagerManual();
-        audioEncoder = new AudioEncoder(this);
+        audioEncoder = new AudioEncoder(this, this);
         audioEncoder.setGetFrame(((MicrophoneManagerManual) microphoneManager).getGetFrame());
         break;
       case ASYNC:
         microphoneManager = new MicrophoneManager(this);
-        audioEncoder = new AudioEncoder(this);
+        audioEncoder = new AudioEncoder(this, this);
         break;
     }
   }
@@ -342,6 +348,12 @@ public abstract class OnlyAudioBase implements GetAacData, GetMicrophoneData {
   @Override
   public void onAudioFormat(MediaFormat mediaFormat) {
     recordController.setAudioFormat(mediaFormat, true);
+  }
+
+  @Override
+  public void onEncoderError(BaseEncoder baseEncoder, Exception e) {
+    Log.e(TAG, "Encoder crashed, trying to recover it", e);
+    baseEncoder.reset();
   }
 
   public abstract void setLogs(boolean enable);

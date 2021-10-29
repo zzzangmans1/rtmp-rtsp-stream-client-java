@@ -22,6 +22,7 @@ import android.media.MediaFormat;
 import android.util.Log;
 import androidx.annotation.NonNull;
 import com.pedro.encoder.BaseEncoder;
+import com.pedro.encoder.EncoderErrorCallback;
 import com.pedro.encoder.Frame;
 import com.pedro.encoder.GetFrame;
 import com.pedro.encoder.input.audio.GetMicrophoneData;
@@ -44,7 +45,8 @@ public class AudioEncoder extends BaseEncoder implements GetMicrophoneData {
   private boolean isStereo = true;
   private GetFrame getFrame;
 
-  public AudioEncoder(GetAacData getAacData) {
+  public AudioEncoder(GetAacData getAacData, EncoderErrorCallback encoderErrorCallback) {
+    super(encoderErrorCallback);
     this.getAacData = getAacData;
     TAG = "AudioEncoder";
   }
