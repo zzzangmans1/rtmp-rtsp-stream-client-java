@@ -458,14 +458,9 @@ public class VideoEncoder extends BaseEncoder implements GetCameraData {
     spsPpsSetted = true;
   }
 
-  int cont = 0;
   @Override
   protected void checkBuffer(@NonNull ByteBuffer byteBuffer,
       @NonNull MediaCodec.BufferInfo bufferInfo) {
-    if (System.nanoTime() / 1000 - presentTimeUs > 10000000 && cont == 0) {
-      cont++;
-      throw new IllegalStateException("wtf??");
-    }
     if (forceKey && Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
       forceKey = false;
       requestKeyframe();
