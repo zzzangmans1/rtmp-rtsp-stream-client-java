@@ -43,6 +43,7 @@ public class AudioEncoder extends BaseEncoder implements GetMicrophoneData {
   private int maxInputSize = 0;
   private boolean isStereo = true;
   private GetFrame getFrame;
+  private long bytesRead = 0;
 
   public AudioEncoder(GetAacData getAacData) {
     this.getAacData = getAacData;
@@ -106,6 +107,7 @@ public class AudioEncoder extends BaseEncoder implements GetMicrophoneData {
 
   @Override
   protected void stopImp() {
+    bytesRead = 0;
     Log.i(TAG, "stopped");
   }
 
@@ -119,6 +121,14 @@ public class AudioEncoder extends BaseEncoder implements GetMicrophoneData {
   @Override
   protected Frame getInputFrame() throws InterruptedException {
     return getFrame != null ? getFrame.getInputFrame() : queue.take();
+  }
+
+  @Override
+  protected long calculatePts(Frame frame, long presentTimeUs) {
+    int channels = isStereo ? 2 : 1;
+    long pts = 1000000 * bytesRead / 2 / channels / sampleRate;
+    bytesRead += frame.getSize();
+    return pts;
   }
 
   @Override
