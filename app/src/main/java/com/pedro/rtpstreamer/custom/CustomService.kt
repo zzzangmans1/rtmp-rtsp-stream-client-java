@@ -29,19 +29,18 @@ import com.pedro.rtpstreamer.R
 class CustomService: Service(), ConnectCheckerRtmp {
 
   companion object {
-    val DISPLAY_CODE = 1
+    const val DISPLAY_CODE = 1
     var instance: CustomService? = null
     var openGlView: OpenGlView? = null
+    private const val TAG = "CustomService"
+    private const val channelId = "rtpDisplayStreamChannel"
+    private const val notifyId = 123456
   }
 
-  private val TAG = "CustomService"
   private var rtmpCustom: RtmpCustom? = null
   private var videoSource: VideoSource = Camera1Source(this)
   private var audioSource: AudioSource = NoAudioSource()
   private val mainHandler = Handler(Looper.getMainLooper())
-
-  private val channelId = "rtpDisplayStreamChannel"
-  private val notifyId = 123456
   private var notificationManager: NotificationManager? = null
 
   override fun onBind(intent: Intent?): IBinder? {
@@ -62,10 +61,10 @@ class CustomService: Service(), ConnectCheckerRtmp {
     }
     keepAliveTrick()
     val view = openGlView
-    if (view != null) {
-      rtmpCustom = RtmpCustom(view, videoSource, audioSource, this)
+    rtmpCustom = if (view != null) {
+      RtmpCustom(view, videoSource, audioSource, this)
     } else {
-      rtmpCustom = RtmpCustom(this, videoSource, audioSource, this)
+      RtmpCustom(this, videoSource, audioSource, this)
     }
     rtmpCustom?.startPreview()
     instance = this

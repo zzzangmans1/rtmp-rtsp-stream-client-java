@@ -16,14 +16,12 @@ import com.pedro.encoder.video.GetVideoData
 import com.pedro.encoder.video.VideoEncoder
 import com.pedro.rtplibrary.custom.audio.AudioSource
 import com.pedro.rtplibrary.custom.audio.NoAudioSource
-import com.pedro.rtplibrary.custom.video.Camera2Source
 import com.pedro.rtplibrary.custom.video.DisplaySource
 import com.pedro.rtplibrary.custom.video.NoVideoSource
 import com.pedro.rtplibrary.custom.video.VideoSource
 import com.pedro.rtplibrary.util.FpsListener
 import com.pedro.rtplibrary.util.RecordController
 import com.pedro.rtplibrary.view.GlInterface
-import com.pedro.rtplibrary.view.LightOpenGlView
 import com.pedro.rtplibrary.view.OffScreenGlThread
 import com.pedro.rtplibrary.view.OpenGlView
 import java.io.IOException
@@ -37,8 +35,8 @@ import java.nio.ByteBuffer
 @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
 abstract class CustomBase: GetVideoData, GetAacData, GetMicrophoneData {
 
-  private val videoEncoder = VideoEncoder(this)
-  private val audioEncoder = AudioEncoder(this)
+  private val videoEncoder by lazy {  VideoEncoder(this) }
+  private val audioEncoder by lazy { AudioEncoder(this) }
   private var videoSource: VideoSource = NoVideoSource()
   private var audioSource: AudioSource = NoAudioSource()
   private val context: Context
@@ -237,9 +235,7 @@ abstract class CustomBase: GetVideoData, GetAacData, GetMicrophoneData {
   }
 
   fun replaceView(context: Context) {
-    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR2) {
-      replaceGlInterface(OffScreenGlThread(context))
-    }
+    replaceGlInterface(OffScreenGlThread(context))
   }
 
   fun replaceView(openGlView: OpenGlView) {
@@ -252,7 +248,6 @@ abstract class CustomBase: GetVideoData, GetAacData, GetMicrophoneData {
   private fun replaceGlInterface(glInterface: GlInterface) {
     if (streaming || isRecording() || onPreview) {
       videoSource.stop()
-//      cameraManager.stop()
       this.glInterface.removeMediaCodecSurface()
       this.glInterface.stop()
       this.glInterface = glInterface
@@ -271,9 +266,6 @@ abstract class CustomBase: GetVideoData, GetAacData, GetMicrophoneData {
       videoSource.setSurfaceTexture(glInterface.surfaceTexture)
       videoSource.prepare()
       videoSource.start()
-//      cameraManager.setSurfaceTexture(glInterface.surfaceTexture)
-//      cameraManager.setRotation(videoEncoder.rotation)
-//      cameraManager.start(videoEncoder.width, videoEncoder.height, videoEncoder.fps)
     } else {
       this.glInterface = glInterface
       this.glInterface.init()

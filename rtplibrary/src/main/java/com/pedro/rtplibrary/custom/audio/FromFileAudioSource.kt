@@ -6,14 +6,15 @@ import com.pedro.encoder.input.decoder.*
 /**
  * Created by pedro on 18/10/21.
  */
-class FromFileAudioSource(microphoneData: GetMicrophoneData, private val path: String, private val loopMode: Boolean = false):
+class FromFileAudioSource(private val path: String, private val loopMode: Boolean = false):
   AudioSource, AudioDecoderInterface, LoopFileInterface {
 
-  private val audioDecoder = AudioDecoder(microphoneData, this, this)
+  private var callback: GetMicrophoneData? = null
+  private var audioDecoder: AudioDecoder? = null
   private var running = false
 
   override fun setGetMicrophoneData(getMicrophoneData: GetMicrophoneData) {
-
+    callback = getMicrophoneData
   }
 
   override fun setAudioInfo(sampleRate: Int, isStereo: Boolean) {
@@ -21,18 +22,19 @@ class FromFileAudioSource(microphoneData: GetMicrophoneData, private val path: S
   }
 
   override fun prepare() {
-    audioDecoder.setLoopMode(loopMode)
-    audioDecoder.initExtractor(path)
-    audioDecoder.prepareAudio()
+    audioDecoder = AudioDecoder(callback, this, this)
+    audioDecoder?.setLoopMode(loopMode)
+    audioDecoder?.initExtractor(path)
+    audioDecoder?.prepareAudio()
   }
 
   override fun start() {
-    audioDecoder.start()
+    audioDecoder?.start()
     running = true
   }
 
   override fun stop() {
-    audioDecoder.stop()
+    audioDecoder?.stop()
     running = false
   }
 

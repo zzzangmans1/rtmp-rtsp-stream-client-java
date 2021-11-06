@@ -18,12 +18,13 @@ import com.pedro.rtpstreamer.R
  *
  * Working:
  * - Video stream
+ * - Audio stream
  * - Start and stop preview
  * - Start and stop stream
- * - Change video source (except from file source)
- * Developing:
- * - Audio stream (current no audio)
+ * - Change video source
  * - Change audio source
+ *
+ * Developing:
  * - Record local video
  * - Adapt video source resolution to fit preview/stream and rotation on fly
  *
