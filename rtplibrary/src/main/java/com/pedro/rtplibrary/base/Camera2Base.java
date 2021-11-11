@@ -917,6 +917,10 @@ public abstract class Camera2Base implements GetAacData, GetVideoData, GetMicrop
     return recordController.getStatus();
   }
 
+  public void reSyncAudio() {
+    if (isStreaming() || isRecording()) audioEncoder.reSyncAudio();
+  }
+
   /**
    * Get preview state.
    *

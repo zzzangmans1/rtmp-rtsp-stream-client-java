@@ -637,6 +637,10 @@ public abstract class FromFileBase
     }
   }
 
+  public void reSyncAudio() {
+    if (isStreaming() || isRecording()) audioEncoder.reSyncAudio();
+  }
+
   protected abstract void onSpsPpsVpsRtp(ByteBuffer sps, ByteBuffer pps, ByteBuffer vps);
 
   @Override

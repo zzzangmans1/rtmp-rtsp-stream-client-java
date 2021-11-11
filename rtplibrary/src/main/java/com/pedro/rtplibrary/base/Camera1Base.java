@@ -873,6 +873,10 @@ public abstract class Camera1Base
     return recordController.getStatus();
   }
 
+  public void reSyncAudio() {
+    if (isStreaming() || isRecording()) audioEncoder.reSyncAudio();
+  }
+
   protected abstract void getAacDataRtp(ByteBuffer aacBuffer, MediaCodec.BufferInfo info);
 
   @Override

@@ -44,6 +44,7 @@ public class AudioEncoder extends BaseEncoder implements GetMicrophoneData {
   private boolean isStereo = true;
   private GetFrame getFrame;
   private long bytesRead = 0;
+  private long syncTs = 0;
 
   public AudioEncoder(GetAacData getAacData) {
     this.getAacData = getAacData;
@@ -108,6 +109,7 @@ public class AudioEncoder extends BaseEncoder implements GetMicrophoneData {
   @Override
   protected void stopImp() {
     bytesRead = 0;
+    syncTs = 0;
     Log.i(TAG, "stopped");
   }
 
@@ -126,7 +128,7 @@ public class AudioEncoder extends BaseEncoder implements GetMicrophoneData {
   @Override
   protected long calculatePts(Frame frame, long presentTimeUs) {
     int channels = isStereo ? 2 : 1;
-    long pts = 1000000 * bytesRead / 2 / channels / sampleRate;
+    long pts = syncTs + (1000000 * bytesRead / 2 / channels / sampleRate);
     bytesRead += frame.getSize();
     return pts;
   }
@@ -187,5 +189,10 @@ public class AudioEncoder extends BaseEncoder implements GetMicrophoneData {
   @Override
   public void formatChanged(@NonNull MediaCodec mediaCodec, @NonNull MediaFormat mediaFormat) {
     getAacData.onAudioFormat(mediaFormat);
+  }
+
+  public void reSyncAudio() {
+    syncTs = System.nanoTime() / 1000 - presentTimeUs;
+    bytesRead = 0;
   }
 }

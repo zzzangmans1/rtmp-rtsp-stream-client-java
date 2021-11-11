@@ -429,7 +429,8 @@ public class OpenGlRtmpActivity extends AppCompatActivity
         break;
       case R.id.switch_camera:
         try {
-          rtmpCamera1.switchCamera();
+          rtmpCamera1.reSyncAudio();
+          //rtmpCamera1.switchCamera();
         } catch (CameraOpenException e) {
           Toast.makeText(this, e.getMessage(), Toast.LENGTH_SHORT).show();
         }
