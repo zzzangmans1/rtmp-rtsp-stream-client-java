@@ -57,8 +57,8 @@ interface ConnectCheckerRtp: ConnectCheckerRtmp, ConnectCheckerRtsp {
     onConnectionFailedRtp(reason)
   }
 
-  override fun onNewBitrateRtmp(bitrate: Long) {
-    onNewBitrateRtp(bitrate)
+  override fun onNewBitrateRtmp(videoBitrate: Long, audioBitrate: Long) {
+    onNewBitrateRtp(videoBitrate + audioBitrate)
   }
 
   override fun onDisconnectRtmp() {
@@ -88,8 +88,8 @@ interface ConnectCheckerRtp: ConnectCheckerRtmp, ConnectCheckerRtsp {
     onConnectionFailedRtp(reason)
   }
 
-  override fun onNewBitrateRtsp(bitrate: Long) {
-    onNewBitrateRtp(bitrate)
+  override fun onNewBitrateRtsp(videoBitrate: Long, audioBitrate: Long) {
+    onNewBitrateRtp(videoBitrate + audioBitrate)
   }
 
   override fun onDisconnectRtsp() {

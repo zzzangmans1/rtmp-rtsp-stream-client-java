@@ -136,16 +136,21 @@ open class RtspSender(private val connectCheckerRtsp: ConnectCheckerRtsp) : Vide
           rtpSocket?.sendFrame(rtpFrame, isEnableLogs)
           //bytes to bits (4 is tcp header length)
           val packetSize = if (isTcp) rtpFrame.length + 4 else rtpFrame.length
-          bitrateManager.calculateBitrate(packetSize * 8.toLong())
           if (rtpFrame.isVideoFrame()) {
             videoFramesSent++
+            bitrateManager.calculateBitrate(packetSize * 8L, 0)
           } else {
             audioFramesSent++
+            bitrateManager.calculateBitrate(0,packetSize * 8L)
           }
           if (baseSenderReport?.update(rtpFrame, isEnableLogs) == true) {
             //bytes to bits (4 is tcp header length)
             val reportSize = if (isTcp) baseSenderReport?.PACKET_LENGTH ?: 0 + 4 else baseSenderReport?.PACKET_LENGTH ?: 0
-            bitrateManager.calculateBitrate(reportSize * 8.toLong())
+            if (rtpFrame.isVideoFrame()) {
+              bitrateManager.calculateBitrate(reportSize * 8L, 0)
+            } else {
+              bitrateManager.calculateBitrate(0,reportSize * 8L)
+            }
           }
         } catch (e: Exception) {
           //InterruptedException is only when you disconnect manually, you don't need report it.

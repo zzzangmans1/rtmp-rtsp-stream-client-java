@@ -106,7 +106,7 @@ public class TextureModeRtmpActivity extends AppCompatActivity
   }
 
   @Override
-  public void onNewBitrateRtmp(long bitrate) {
+  public void onNewBitrateRtmp(long videoBitrate, long audioBitrate) {
 
   }
 

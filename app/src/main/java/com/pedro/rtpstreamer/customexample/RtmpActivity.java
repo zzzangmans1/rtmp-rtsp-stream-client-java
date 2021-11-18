@@ -355,11 +355,11 @@ public class RtmpActivity extends AppCompatActivity
   }
 
   @Override
-  public void onNewBitrateRtmp(final long bitrate) {
+  public void onNewBitrateRtmp(long videoBitrate, long audioBitrate) {
     runOnUiThread(new Runnable() {
       @Override
       public void run() {
-        tvBitrate.setText(bitrate + " bps");
+        tvBitrate.setText((videoBitrate + audioBitrate) + " bps");
       }
     });
   }

@@ -130,7 +130,7 @@ public class RtspFromFileActivity extends AppCompatActivity
   }
 
   @Override
-  public void onNewBitrateRtsp(long bitrate) {
+  public void onNewBitrateRtsp(long videoBitrate, long audioBitrate) {
 
   }
 

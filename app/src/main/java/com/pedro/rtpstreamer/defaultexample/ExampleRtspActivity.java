@@ -109,7 +109,7 @@ public class ExampleRtspActivity extends AppCompatActivity
   }
 
   @Override
-  public void onNewBitrateRtsp(final long bitrate) {
+  public void onNewBitrateRtsp(long videoBitrate, long audioBitrate) {
 
   }
 

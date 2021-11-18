@@ -374,11 +374,11 @@ public class RtspActivity extends AppCompatActivity
   }
 
   @Override
-  public void onNewBitrateRtsp(final long bitrate) {
+  public void onNewBitrateRtsp(long videoBitrate, long audioBitrate) {
     runOnUiThread(new Runnable() {
       @Override
       public void run() {
-        tvBitrate.setText(bitrate + " bps");
+        tvBitrate.setText((videoBitrate + audioBitrate) + " bps");
       }
     });
   }

@@ -108,11 +108,11 @@ class RtmpSender(private val connectCheckerRtmp: ConnectCheckerRtmp,
             Log.i(TAG, "Skipping iteration, frame null")
             continue
           }
-          var size = 0
           if (flvPacket.type == FlvType.VIDEO) {
             videoFramesSent++
             output?.let { output ->
-              size = commandsManager.sendVideoPacket(flvPacket, output)
+              val size = commandsManager.sendVideoPacket(flvPacket, output)
+              bitrateManager.calculateBitrate(size * 8L, 0)
               if (isEnableLogs) {
                 Log.i(TAG, "wrote Video packet, size $size")
               }
@@ -120,14 +120,14 @@ class RtmpSender(private val connectCheckerRtmp: ConnectCheckerRtmp,
           } else {
             audioFramesSent++
             output?.let { output ->
-              size = commandsManager.sendAudioPacket(flvPacket, output)
+              val size = commandsManager.sendAudioPacket(flvPacket, output)
+              bitrateManager.calculateBitrate(0, size * 8L)
               if (isEnableLogs) {
                 Log.i(TAG, "wrote Audio packet, size $size")
               }
             }
           }
           //bytes to bits
-          bitrateManager.calculateBitrate(size * 8L)
         } catch (e: Exception) {
           //InterruptedException is only when you disconnect manually, you don't need report it.
           if (e !is InterruptedException) {

@@ -23,17 +23,21 @@ package com.pedro.rtsp.utils
  */
 open class BitrateManager(private val connectCheckerRtsp: ConnectCheckerRtsp) {
 
-  private var bitrate: Long = 0
+  private var videoBitrate: Long = 0
+  private var audioBitrate: Long = 0
   private var timeStamp = System.currentTimeMillis()
 
   @Synchronized
-  fun calculateBitrate(size: Long) {
-    bitrate += size
+  fun calculateBitrate(videoSize: Long, audioSize: Long) {
+    videoBitrate += videoSize
+    audioBitrate += audioSize
     val timeDiff = System.currentTimeMillis() - timeStamp
     if (timeDiff >= 1000) {
-      connectCheckerRtsp.onNewBitrateRtsp((bitrate / (timeDiff / 1000f)).toLong())
+      val time = timeDiff / 1000f
+      connectCheckerRtsp.onNewBitrateRtsp((videoBitrate / time).toLong(), (audioBitrate / time).toLong())
       timeStamp = System.currentTimeMillis()
-      bitrate = 0
+      videoBitrate = 0
+      audioBitrate = 0
     }
   }
 }
