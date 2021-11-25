@@ -16,10 +16,12 @@
 
 package com.pedro.encoder.input.audio;
 
+import com.pedro.encoder.Frame;
+
 public class NoAudioEffect extends CustomAudioEffect {
 
   @Override
-  public byte[] process(byte[] pcmBuffer) {
-    return pcmBuffer;
+  public Frame process(Frame pcmFrame) {
+    return pcmFrame;
   }
 }

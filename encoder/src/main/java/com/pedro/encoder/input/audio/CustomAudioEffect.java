@@ -16,11 +16,13 @@
 
 package com.pedro.encoder.input.audio;
 
+import com.pedro.encoder.Frame;
+
 public abstract class CustomAudioEffect {
 
   /**
-   * @param pcmBuffer buffer obtained directly from the microphone.
+   * @param pcmFrame buffer obtained directly from the microphone.
    * @return it must be of same size that pcmBuffer parameter.
    */
-  public abstract byte[] process(byte[] pcmBuffer);
+  public abstract Frame process(Frame pcmFrame);
 }
