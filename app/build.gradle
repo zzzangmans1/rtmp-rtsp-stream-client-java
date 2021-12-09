@@ -24,4 +24,5 @@ dependencies {
   implementation project(':rtplibrary')
   implementation 'com.google.android.material:material:1.4.0'
   implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlin_version"
+  implementation 'androidx.constraintlayout:constraintlayout:2.1.2'
 }

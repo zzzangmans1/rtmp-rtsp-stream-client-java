@@ -16,12 +16,15 @@
 
 package com.pedro.rtpstreamer.openglexample;
 
+import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.SurfaceTexture;
 import android.media.MediaPlayer;
 import android.os.Build;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.MotionEvent;
@@ -29,6 +32,8 @@ import android.view.Surface;
 import android.view.SurfaceHolder;
 import android.view.View;
 import android.view.WindowManager;
+import android.webkit.WebView;
+import android.webkit.WebViewClient;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.Toast;
@@ -82,6 +87,7 @@ import com.pedro.encoder.input.video.CameraOpenException;
 import com.pedro.encoder.utils.gl.TranslateTo;
 import com.pedro.rtmp.utils.ConnectCheckerRtmp;
 import com.pedro.rtplibrary.rtmp.RtmpCamera1;
+import com.pedro.rtplibrary.util.FpsListener;
 import com.pedro.rtplibrary.view.OpenGlView;
 import com.pedro.rtpstreamer.R;
 import com.pedro.rtpstreamer.utils.PathUtils;
@@ -128,6 +134,13 @@ public class OpenGlRtmpActivity extends AppCompatActivity
     etUrl = findViewById(R.id.et_rtp_url);
     etUrl.setHint(R.string.hint_rtmp);
     rtmpCamera1 = new RtmpCamera1(openGlView, this);
+    rtmpCamera1.setFpsListener(new FpsListener.Callback() {
+      @Override
+      public void onFps(int fps) {
+        //Check fps while stream or record.
+        Log.e("Pedro", "fps: " + fps);
+      }
+    });
     openGlView.getHolder().addCallback(this);
     openGlView.setOnTouchListener(this);
   }
@@ -136,6 +149,16 @@ public class OpenGlRtmpActivity extends AppCompatActivity
   public boolean onCreateOptionsMenu(Menu menu) {
     getMenuInflater().inflate(R.menu.gl_menu, menu);
     return true;
+  }
+
+  public static Bitmap loadBitmapFromView(View v) {
+    if (v.getLayoutParams().width > 0) {
+      Bitmap b = Bitmap.createBitmap( v.getLayoutParams().width, v.getLayoutParams().height, Bitmap.Config.ARGB_8888);
+      Canvas c = new Canvas(b);
+      v.layout(v.getLeft(), v.getTop(), v.getRight(), v.getBottom());
+      v.draw(c);
+      return b;
+    } else return null;
   }
 
   @Override
@@ -162,7 +185,13 @@ public class OpenGlRtmpActivity extends AppCompatActivity
         return true;
       case R.id.android_view:
         AndroidViewFilterRender androidViewFilterRender = new AndroidViewFilterRender();
-        androidViewFilterRender.setView(findViewById(R.id.switch_camera));
+        //A high resolution WebView produce fps issues. I reduced size in XML
+        WebView webView = findViewById(R.id.web_view);
+        webView.setBackgroundColor(Color.TRANSPARENT);
+        webView.getSettings().setJavaScriptEnabled(true);
+        webView.setWebViewClient(new WebViewClient());
+        webView.loadUrl("https://master.d2u7cmbangq1ut.amplifyapp.com/crickslab-graphics/basic/ads.html");
+        androidViewFilterRender.setView(findViewById(R.id.cl_parent));
         rtmpCamera1.getGlInterface().setFilter(androidViewFilterRender);
         return true;
       case R.id.basic_deformation:
