@@ -36,6 +36,8 @@ import com.pedro.encoder.utils.gl.GlUtil;
 import com.pedro.encoder.utils.gl.TranslateTo;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 /**
  * Created by pedro on 4/02/18.
@@ -61,18 +63,25 @@ public class AndroidViewFilterRender extends BaseFilterRender {
   private int uSamplerHandle = -1;
   private int uSamplerViewHandle = -1;
 
-  private int[] viewId = new int[1];
+  private int[] viewId = new int[2];
   private View view;
-  private SurfaceTexture surfaceTexture;
-  private Surface surface;
+  //Use 2 surfaces to avoid block render thread
+  private SurfaceTexture surfaceTexture, surfaceTexture2;
+  private Surface surface, surface2;
   private final Handler mainHandler;
+  private boolean running = false;
+  private ExecutorService thread = null;
 
   private int rotation;
   private float positionX = 0, positionY = 0;
   private float scaleX = 1f, scaleY = 1f;
   private boolean loaded = false;
   private float viewX, viewY;
-  private volatile boolean renderingView = false;
+  private volatile Status renderingStatus = Status.DONE1;
+
+  enum Status {
+    RENDER1, RENDER2, DONE1, DONE2
+  }
 
   public AndroidViewFilterRender() {
     squareVertex = ByteBuffer.allocateDirect(squareVertexDataFilter.length * FLOAT_SIZE_BYTES)
@@ -99,43 +108,35 @@ public class AndroidViewFilterRender extends BaseFilterRender {
 
     GlUtil.createExternalTextures(viewId.length, viewId, 0);
     surfaceTexture = new SurfaceTexture(viewId[0]);
+    surfaceTexture2 = new SurfaceTexture(viewId[1]);
     surface = new Surface(surfaceTexture);
+    surface2 = new Surface(surfaceTexture2);
   }
 
   @Override
   protected void drawFilter() {
-    surfaceTexture.setDefaultBufferSize(getPreviewWidth(), getPreviewHeight());
-    if (view != null && !renderingView) {
-      renderingView = true;
-      final Canvas canvas = surface.lockCanvas(null);
-      canvas.drawColor(Color.TRANSPARENT, PorterDuff.Mode.CLEAR);
-      float scaleFactorX = 100f * (float) view.getWidth() / (float) getPreviewWidth();
-      float scaleFactorY = 100f * (float) view.getHeight() / (float) getPreviewHeight();
-      canvas.translate(positionX, positionY);
-      canvas.rotate(rotation, viewX / 2f, viewY / 2f);
-      if (!loaded) {
-        scaleX = scaleFactorX;
-        scaleY = scaleFactorY;
-        loaded = true;
-      }
-      canvas.scale(scaleX / scaleFactorX, scaleY / scaleFactorY);
-      try {
-        view.draw(canvas);
-        surface.unlockCanvasAndPost(canvas);
-        renderingView = false;
-        //Sometimes draw could crash if you don't use main thread. Ensuring you can render always
-      } catch (Exception e) {
-        mainHandler.post(new Runnable() {
-          @Override
-          public void run() {
-            view.draw(canvas);
-            surface.unlockCanvasAndPost(canvas);
-            renderingView = false;
-          }
-        });
-      }
+    final Status status = renderingStatus;
+    switch (status) {
+      case DONE1:
+        surfaceTexture.setDefaultBufferSize(getPreviewWidth(), getPreviewHeight());
+        surfaceTexture.updateTexImage();
+        renderingStatus = Status.RENDER2;
+        break;
+      case DONE2:
+        surfaceTexture2.setDefaultBufferSize(getPreviewWidth(), getPreviewHeight());
+        surfaceTexture2.updateTexImage();
+        renderingStatus = Status.RENDER1;
+        break;
+      case RENDER1:
+        surfaceTexture2.setDefaultBufferSize(getPreviewWidth(), getPreviewHeight());
+        surfaceTexture2.updateTexImage();
+        break;
+      case RENDER2:
+      default:
+        surfaceTexture.setDefaultBufferSize(getPreviewWidth(), getPreviewHeight());
+        surfaceTexture.updateTexImage();
+        break;
     }
-    surfaceTexture.updateTexImage();
 
     GLES20.glUseProgram(program);
 
@@ -158,11 +159,23 @@ public class AndroidViewFilterRender extends BaseFilterRender {
     //android view
     GLES20.glUniform1i(uSamplerViewHandle, 5);
     GLES20.glActiveTexture(GLES20.GL_TEXTURE5);
-    GLES20.glBindTexture(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, viewId[0]);
+
+    switch (status) {
+      case DONE2:
+      case RENDER1:
+        GLES20.glBindTexture(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, viewId[1]);
+        break;
+      case RENDER2:
+      case DONE1:
+      default:
+        GLES20.glBindTexture(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, viewId[0]);
+        break;
+    }
   }
 
   @Override
   public void release() {
+    stopRender();
     GLES20.glDeleteProgram(program);
   }
 
@@ -171,11 +184,13 @@ public class AndroidViewFilterRender extends BaseFilterRender {
   }
 
   public void setView(final View view) {
+    stopRender();
     this.view = view;
     if (view != null) {
       view.measure(View.MeasureSpec.UNSPECIFIED, View.MeasureSpec.UNSPECIFIED);
       viewX = view.getMeasuredWidth();
       viewY = view.getMeasuredHeight();
+      startRender();
     }
   }
 
@@ -259,5 +274,66 @@ public class AndroidViewFilterRender extends BaseFilterRender {
     int previewX = getPreviewWidth();
     int previewY = getPreviewHeight();
     return new PointF(positionX * 100 / previewX, positionY  * 100 / previewY);
+  }
+
+  private void startRender() {
+    running = true;
+    thread = Executors.newSingleThreadExecutor();
+    thread.execute(new Runnable() {
+      @Override
+      public void run() {
+        while (running) {
+          final Status status = renderingStatus;
+          if (status == Status.RENDER1 || status == Status.RENDER2) {
+            final Canvas canvas = status == Status.RENDER1 ? surface.lockCanvas(null) : surface2.lockCanvas(null);
+            canvas.drawColor(Color.TRANSPARENT, PorterDuff.Mode.CLEAR);
+            float scaleFactorX = 100f * (float) view.getWidth() / (float) getPreviewWidth();
+            float scaleFactorY = 100f * (float) view.getHeight() / (float) getPreviewHeight();
+            canvas.translate(positionX, positionY);
+            canvas.rotate(rotation, viewX / 2f, viewY / 2f);
+            if (!loaded) {
+              scaleX = scaleFactorX;
+              scaleY = scaleFactorY;
+              loaded = true;
+            }
+            canvas.scale(scaleX / scaleFactorX, scaleY / scaleFactorY);
+            try {
+              view.draw(canvas);
+              if (status == Status.RENDER1) {
+                surface.unlockCanvasAndPost(canvas);
+                renderingStatus = Status.DONE1;
+              } else {
+                surface2.unlockCanvasAndPost(canvas);
+                renderingStatus = Status.DONE2;
+              }
+              //Sometimes draw could crash if you don't use main thread. Ensuring you can render always
+            } catch (Exception e) {
+              mainHandler.post(new Runnable() {
+                @Override
+                public void run() {
+                  view.draw(canvas);
+                  if (status == Status.RENDER1) {
+                    surface.unlockCanvasAndPost(canvas);
+                    renderingStatus = Status.DONE1;
+                  } else {
+                    surface2.unlockCanvasAndPost(canvas);
+                    renderingStatus = Status.DONE2;
+                  }
+                }
+              });
+            }
+          }
+        }
+      }
+    });
+  }
+
+  private void stopRender() {
+    running = false;
+    if (thread != null) {
+      thread.shutdownNow();
+      thread = null;
+    }
+    renderingStatus = Status.DONE1;
   }
 }
