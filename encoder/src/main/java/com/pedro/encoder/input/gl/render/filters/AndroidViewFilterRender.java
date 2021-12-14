@@ -64,7 +64,7 @@ public class AndroidViewFilterRender extends BaseFilterRender {
   private int uSamplerHandle = -1;
   private int uSamplerViewHandle = -1;
 
-  private int[] viewId = new int[2];
+  private int[] viewId = new int[] { -1, -1 };
   private View view;
   //Use 2 surfaces to avoid block render thread
   private SurfaceTexture surfaceTexture, surfaceTexture2;
@@ -178,6 +178,9 @@ public class AndroidViewFilterRender extends BaseFilterRender {
   public void release() {
     stopRender();
     GLES20.glDeleteProgram(program);
+    viewId = new int[] { -1, -1 };
+    surfaceTexture.release();
+    surfaceTexture2.release();
   }
 
   public View getView() {
@@ -294,17 +297,29 @@ public class AndroidViewFilterRender extends BaseFilterRender {
               loaded = true;
             }
             final Canvas canvas;
-            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M) {
-              canvas = status == Status.RENDER1 ? surface.lockHardwareCanvas() : surface2.lockHardwareCanvas();
-            } else {
-              canvas = status == Status.RENDER1 ? surface.lockCanvas(null) : surface2.lockCanvas(null);
+            try {
+              if (!surface.isValid() | !surface2.isValid()) {
+                Log.e("Pedro", "invalid surface? " + surface.isValid() + " - " + surface2.isValid());
+              }
+              Log.e("Pedro", "t1");
+              if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M) {
+                canvas = status == Status.RENDER1 ? surface.lockHardwareCanvas() : surface2.lockHardwareCanvas();
+              } else {
+                canvas = status == Status.RENDER1 ? surface.lockCanvas(null) : surface2.lockCanvas(null);
+              }
+              Log.e("Pedro", "t2");
+            } catch (IllegalStateException e) {
+              Log.e("Pedro", "crash?", e);
+              continue;
             }
             canvas.drawColor(Color.TRANSPARENT, PorterDuff.Mode.CLEAR);
             canvas.rotate(rotation, viewX / 2f, viewY / 2f);
             canvas.scale(scaleX / scaleFactorX, scaleY / scaleFactorY);
             canvas.translate(positionX, positionY);
+            Log.e("Pedro", "t3");
             try {
               view.draw(canvas);
+              Log.e("Pedro", "t4");
               if (status == Status.RENDER1) {
                 surface.unlockCanvasAndPost(canvas);
                 renderingStatus = Status.DONE1;
@@ -312,11 +327,13 @@ public class AndroidViewFilterRender extends BaseFilterRender {
                 surface2.unlockCanvasAndPost(canvas);
                 renderingStatus = Status.DONE2;
               }
+              Log.e("Pedro", "t5");
               //Sometimes draw could crash if you don't use main thread. Ensuring you can render always
             } catch (Exception e) {
               mainHandler.post(new Runnable() {
                 @Override
                 public void run() {
+                  Log.e("Pedro", "t6");
                   view.draw(canvas);
                   if (status == Status.RENDER1) {
                     surface.unlockCanvasAndPost(canvas);
@@ -325,6 +342,7 @@ public class AndroidViewFilterRender extends BaseFilterRender {
                     surface2.unlockCanvasAndPost(canvas);
                     renderingStatus = Status.DONE2;
                   }
+                  Log.e("Pedro", "t7");
                 }
               });
             }
