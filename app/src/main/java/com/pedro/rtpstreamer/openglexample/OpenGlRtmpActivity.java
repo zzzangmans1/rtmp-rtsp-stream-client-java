@@ -32,6 +32,7 @@ import android.view.Surface;
 import android.view.SurfaceHolder;
 import android.view.View;
 import android.view.WindowManager;
+import android.webkit.WebChromeClient;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.widget.Button;
@@ -189,10 +190,15 @@ public class OpenGlRtmpActivity extends AppCompatActivity
         WebView webView = findViewById(R.id.web_view);
         webView.setBackgroundColor(Color.TRANSPARENT);
         webView.getSettings().setJavaScriptEnabled(true);
-        webView.setWebViewClient(new WebViewClient());
-        webView.loadUrl("https://master.d2u7cmbangq1ut.amplifyapp.com/crickslab-graphics/basic/ads.html");
+        webView.setWebViewClient(new WebViewClient() {
+          @Override
+          public void onPageFinished(WebView view, String url) {
+            super.onPageFinished(view, url);
+            rtmpCamera1.getGlInterface().setFilter(androidViewFilterRender);
+          }
+        });
         androidViewFilterRender.setView(findViewById(R.id.cl_parent));
-        rtmpCamera1.getGlInterface().setFilter(androidViewFilterRender);
+        webView.loadUrl("https://master.d2u7cmbangq1ut.amplifyapp.com/crickslab-graphics/basic/ads.html");
         return true;
       case R.id.basic_deformation:
         rtmpCamera1.getGlInterface().setFilter(new BasicDeformationFilterRender());

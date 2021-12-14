@@ -286,27 +286,25 @@ public class AndroidViewFilterRender extends BaseFilterRender {
         while (running) {
           final Status status = renderingStatus;
           if (status == Status.RENDER1 || status == Status.RENDER2) {
-            long time = System.currentTimeMillis();
-            final Canvas canvas = status == Status.RENDER1 ? surface.lockCanvas(null) : surface2.lockCanvas(null);
-            Log.e("Filter", "t1: " + (System.currentTimeMillis() - time));
-            long time2 = System.currentTimeMillis();
-            canvas.drawColor(Color.TRANSPARENT, PorterDuff.Mode.CLEAR);
             float scaleFactorX = 100f * (float) view.getWidth() / (float) getPreviewWidth();
             float scaleFactorY = 100f * (float) view.getHeight() / (float) getPreviewHeight();
-            canvas.translate(positionX, positionY);
-            canvas.rotate(rotation, viewX / 2f, viewY / 2f);
             if (!loaded) {
               scaleX = scaleFactorX;
               scaleY = scaleFactorY;
               loaded = true;
             }
+            final Canvas canvas;
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M) {
+              canvas = status == Status.RENDER1 ? surface.lockHardwareCanvas() : surface2.lockHardwareCanvas();
+            } else {
+              canvas = status == Status.RENDER1 ? surface.lockCanvas(null) : surface2.lockCanvas(null);
+            }
+            canvas.drawColor(Color.TRANSPARENT, PorterDuff.Mode.CLEAR);
+            canvas.rotate(rotation, viewX / 2f, viewY / 2f);
             canvas.scale(scaleX / scaleFactorX, scaleY / scaleFactorY);
-            Log.e("Filter", "t2: " + (System.currentTimeMillis() - time2));
+            canvas.translate(positionX, positionY);
             try {
-              long time3 = System.currentTimeMillis();
               view.draw(canvas);
-              Log.e("Filter", "t3: " + (System.currentTimeMillis() - time3));
-              long time4 = System.currentTimeMillis();
               if (status == Status.RENDER1) {
                 surface.unlockCanvasAndPost(canvas);
                 renderingStatus = Status.DONE1;
@@ -314,17 +312,12 @@ public class AndroidViewFilterRender extends BaseFilterRender {
                 surface2.unlockCanvasAndPost(canvas);
                 renderingStatus = Status.DONE2;
               }
-              Log.e("Filter", "t4: " + (System.currentTimeMillis() - time4));
-              Log.e("Filter", "total: " + (System.currentTimeMillis() - time));
               //Sometimes draw could crash if you don't use main thread. Ensuring you can render always
             } catch (Exception e) {
               mainHandler.post(new Runnable() {
                 @Override
                 public void run() {
-                  long time5 = System.currentTimeMillis();
                   view.draw(canvas);
-                  Log.e("Filter", "t5: " + (System.currentTimeMillis() - time5));
-                  long time6 = System.currentTimeMillis();
                   if (status == Status.RENDER1) {
                     surface.unlockCanvasAndPost(canvas);
                     renderingStatus = Status.DONE1;
@@ -332,8 +325,6 @@ public class AndroidViewFilterRender extends BaseFilterRender {
                     surface2.unlockCanvasAndPost(canvas);
                     renderingStatus = Status.DONE2;
                   }
-                  Log.e("Filter", "t6: " + (System.currentTimeMillis() - time6));
-                  Log.e("Filter", "total: " + (System.currentTimeMillis() - time));
                 }
               });
             }
