@@ -28,7 +28,6 @@ import android.opengl.Matrix;
 import android.os.Build;
 import android.os.Handler;
 import android.os.Looper;
-import android.util.Log;
 import android.view.Surface;
 import android.view.View;
 import androidx.annotation.RequiresApi;
@@ -37,8 +36,6 @@ import com.pedro.encoder.utils.gl.GlUtil;
 import com.pedro.encoder.utils.gl.TranslateTo;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
 /**
  * Created by pedro on 4/02/18.
@@ -64,21 +61,18 @@ public class AndroidViewFilterRender extends BaseFilterRender {
   private int uSamplerHandle = -1;
   private int uSamplerViewHandle = -1;
 
-  private int[] viewId = new int[] { -1, -1 };
+  private int[] viewId = new int[] { -1 };
   private View view;
   //Use 2 surfaces to avoid block render thread
-  private SurfaceTexture surfaceTexture, surfaceTexture2;
-  private Surface surface, surface2;
+  private SurfaceTexture surfaceTexture;
+  private Surface surface;
   private final Handler mainHandler;
-  private boolean running = false;
-  private ExecutorService thread = null;
 
   private int rotation;
   private float positionX = 0, positionY = 0;
   private float scaleX = 1f, scaleY = 1f;
   private boolean loaded = false;
   private float viewX, viewY;
-  private volatile Status renderingStatus = Status.DONE1;
 
   enum Status {
     RENDER1, RENDER2, DONE1, DONE2
@@ -109,35 +103,42 @@ public class AndroidViewFilterRender extends BaseFilterRender {
 
     GlUtil.createExternalTextures(viewId.length, viewId, 0);
     surfaceTexture = new SurfaceTexture(viewId[0]);
-    surfaceTexture2 = new SurfaceTexture(viewId[1]);
     surface = new Surface(surfaceTexture);
-    surface2 = new Surface(surfaceTexture2);
   }
 
   @Override
   protected void drawFilter() {
-    final Status status = renderingStatus;
-    switch (status) {
-      case DONE1:
-        surfaceTexture.setDefaultBufferSize(getPreviewWidth(), getPreviewHeight());
-        surfaceTexture.updateTexImage();
-        renderingStatus = Status.RENDER2;
-        break;
-      case DONE2:
-        surfaceTexture2.setDefaultBufferSize(getPreviewWidth(), getPreviewHeight());
-        surfaceTexture2.updateTexImage();
-        renderingStatus = Status.RENDER1;
-        break;
-      case RENDER1:
-        surfaceTexture2.setDefaultBufferSize(getPreviewWidth(), getPreviewHeight());
-        surfaceTexture2.updateTexImage();
-        break;
-      case RENDER2:
-      default:
-        surfaceTexture.setDefaultBufferSize(getPreviewWidth(), getPreviewHeight());
-        surfaceTexture.updateTexImage();
-        break;
+    surfaceTexture.setDefaultBufferSize(getPreviewWidth(), getPreviewHeight());
+
+    float scaleFactorX = 100f * (float) view.getWidth() / (float) getPreviewWidth();
+    float scaleFactorY = 100f * (float) view.getHeight() / (float) getPreviewHeight();
+    if (!loaded) {
+      scaleX = scaleFactorX;
+      scaleY = scaleFactorY;
+      loaded = true;
     }
+
+    final Canvas canvas;
+    if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M) {
+      canvas = surface.lockHardwareCanvas();
+    } else {
+      canvas = surface.lockCanvas(null);
+    }
+    canvas.drawColor(Color.TRANSPARENT, PorterDuff.Mode.CLEAR);
+    canvas.rotate(rotation, viewX / 2f, viewY / 2f);
+    canvas.scale(scaleX / scaleFactorX, scaleY / scaleFactorY);
+    canvas.translate(positionX, positionY);
+    try {
+      view.draw(canvas);
+      surface.unlockCanvasAndPost(canvas);
+      //Sometimes draw could crash if you don't use main thread. Ensuring you can render always
+    } catch (Exception e) {
+      mainHandler.post(() -> {
+        view.draw(canvas);
+        surface.unlockCanvasAndPost(canvas);
+      });
+    }
+    surfaceTexture.updateTexImage();
 
     GLES20.glUseProgram(program);
 
@@ -161,26 +162,14 @@ public class AndroidViewFilterRender extends BaseFilterRender {
     GLES20.glUniform1i(uSamplerViewHandle, 5);
     GLES20.glActiveTexture(GLES20.GL_TEXTURE5);
 
-    switch (status) {
-      case DONE2:
-      case RENDER1:
-        GLES20.glBindTexture(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, viewId[1]);
-        break;
-      case RENDER2:
-      case DONE1:
-      default:
-        GLES20.glBindTexture(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, viewId[0]);
-        break;
-    }
+    GLES20.glBindTexture(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, viewId[0]);
   }
 
   @Override
   public void release() {
-    stopRender();
     GLES20.glDeleteProgram(program);
-    viewId = new int[] { -1, -1 };
+    viewId = new int[] { -1 };
     surfaceTexture.release();
-    surfaceTexture2.release();
   }
 
   public View getView() {
@@ -188,13 +177,11 @@ public class AndroidViewFilterRender extends BaseFilterRender {
   }
 
   public void setView(final View view) {
-    stopRender();
     this.view = view;
     if (view != null) {
       view.measure(View.MeasureSpec.UNSPECIFIED, View.MeasureSpec.UNSPECIFIED);
       viewX = view.getMeasuredWidth();
       viewY = view.getMeasuredHeight();
-      startRender();
     }
   }
 
@@ -278,86 +265,5 @@ public class AndroidViewFilterRender extends BaseFilterRender {
     int previewX = getPreviewWidth();
     int previewY = getPreviewHeight();
     return new PointF(positionX * 100 / previewX, positionY  * 100 / previewY);
-  }
-
-  private void startRender() {
-    running = true;
-    thread = Executors.newSingleThreadExecutor();
-    thread.execute(new Runnable() {
-      @Override
-      public void run() {
-        while (running) {
-          final Status status = renderingStatus;
-          if (status == Status.RENDER1 || status == Status.RENDER2) {
-            float scaleFactorX = 100f * (float) view.getWidth() / (float) getPreviewWidth();
-            float scaleFactorY = 100f * (float) view.getHeight() / (float) getPreviewHeight();
-            if (!loaded) {
-              scaleX = scaleFactorX;
-              scaleY = scaleFactorY;
-              loaded = true;
-            }
-            final Canvas canvas;
-            try {
-              if (!surface.isValid() | !surface2.isValid()) {
-                Log.e("Pedro", "invalid surface? " + surface.isValid() + " - " + surface2.isValid());
-              }
-              Log.e("Pedro", "t1");
-              if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M) {
-                canvas = status == Status.RENDER1 ? surface.lockHardwareCanvas() : surface2.lockHardwareCanvas();
-              } else {
-                canvas = status == Status.RENDER1 ? surface.lockCanvas(null) : surface2.lockCanvas(null);
-              }
-              Log.e("Pedro", "t2");
-            } catch (IllegalStateException e) {
-              Log.e("Pedro", "crash?", e);
-              continue;
-            }
-            canvas.drawColor(Color.TRANSPARENT, PorterDuff.Mode.CLEAR);
-            canvas.rotate(rotation, viewX / 2f, viewY / 2f);
-            canvas.scale(scaleX / scaleFactorX, scaleY / scaleFactorY);
-            canvas.translate(positionX, positionY);
-            Log.e("Pedro", "t3");
-            try {
-              view.draw(canvas);
-              Log.e("Pedro", "t4");
-              if (status == Status.RENDER1) {
-                surface.unlockCanvasAndPost(canvas);
-                renderingStatus = Status.DONE1;
-              } else {
-                surface2.unlockCanvasAndPost(canvas);
-                renderingStatus = Status.DONE2;
-              }
-              Log.e("Pedro", "t5");
-              //Sometimes draw could crash if you don't use main thread. Ensuring you can render always
-            } catch (Exception e) {
-              mainHandler.post(new Runnable() {
-                @Override
-                public void run() {
-                  Log.e("Pedro", "t6");
-                  view.draw(canvas);
-                  if (status == Status.RENDER1) {
-                    surface.unlockCanvasAndPost(canvas);
-                    renderingStatus = Status.DONE1;
-                  } else {
-                    surface2.unlockCanvasAndPost(canvas);
-                    renderingStatus = Status.DONE2;
-                  }
-                  Log.e("Pedro", "t7");
-                }
-              });
-            }
-          }
-        }
-      }
-    });
-  }
-
-  private void stopRender() {
-    running = false;
-    if (thread != null) {
-      thread.shutdownNow();
-      thread = null;
-    }
-    renderingStatus = Status.DONE1;
   }
 }
