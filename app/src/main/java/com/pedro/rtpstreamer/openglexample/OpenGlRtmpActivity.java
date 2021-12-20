@@ -16,12 +16,15 @@
 
 package com.pedro.rtpstreamer.openglexample;
 
+import android.content.Intent;
+import android.content.pm.ActivityInfo;
 import android.graphics.BitmapFactory;
 import android.graphics.Color;
 import android.graphics.SurfaceTexture;
 import android.media.MediaPlayer;
 import android.os.Build;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.MotionEvent;
@@ -29,9 +32,14 @@ import android.view.Surface;
 import android.view.SurfaceHolder;
 import android.view.View;
 import android.view.WindowManager;
+import android.webkit.WebSettings;
+import android.webkit.WebView;
+import android.webkit.WebViewClient;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.Toast;
+
+import androidx.annotation.Nullable;
 import androidx.annotation.RequiresApi;
 import androidx.appcompat.app.AppCompatActivity;
 import com.pedro.encoder.input.gl.SpriteGestureController;
@@ -82,6 +90,7 @@ import com.pedro.encoder.input.video.CameraOpenException;
 import com.pedro.encoder.utils.gl.TranslateTo;
 import com.pedro.rtmp.utils.ConnectCheckerRtmp;
 import com.pedro.rtplibrary.rtmp.RtmpCamera1;
+import com.pedro.rtplibrary.rtmp.RtmpCamera2;
 import com.pedro.rtplibrary.view.OpenGlView;
 import com.pedro.rtpstreamer.R;
 import com.pedro.rtpstreamer.utils.PathUtils;
@@ -102,7 +111,8 @@ public class OpenGlRtmpActivity extends AppCompatActivity
     implements ConnectCheckerRtmp, View.OnClickListener, SurfaceHolder.Callback,
     View.OnTouchListener {
 
-  private RtmpCamera1 rtmpCamera1;
+  private static final int REQUEST_CODE_SELECT_IMAGE = 1;
+  private RtmpCamera2 rtmpCamera1;
   private Button button;
   private Button bRecord;
   private EditText etUrl;
@@ -115,6 +125,7 @@ public class OpenGlRtmpActivity extends AppCompatActivity
   @Override
   protected void onCreate(Bundle savedInstanceState) {
     super.onCreate(savedInstanceState);
+    setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
     getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
     setContentView(R.layout.activity_open_gl);
     folder = PathUtils.getRecordPath(this);
@@ -127,9 +138,10 @@ public class OpenGlRtmpActivity extends AppCompatActivity
     switchCamera.setOnClickListener(this);
     etUrl = findViewById(R.id.et_rtp_url);
     etUrl.setHint(R.string.hint_rtmp);
-    rtmpCamera1 = new RtmpCamera1(openGlView, this);
+    rtmpCamera1 = new RtmpCamera2(openGlView, this);
     openGlView.getHolder().addCallback(this);
     openGlView.setOnTouchListener(this);
+    Log.e("Pedro", "cerate?");
   }
 
   @Override
@@ -162,8 +174,33 @@ public class OpenGlRtmpActivity extends AppCompatActivity
         return true;
       case R.id.android_view:
         AndroidViewFilterRender androidViewFilterRender = new AndroidViewFilterRender();
-        androidViewFilterRender.setView(findViewById(R.id.switch_camera));
-        rtmpCamera1.getGlInterface().setFilter(androidViewFilterRender);
+        WebView webView = findViewById(R.id.web_view);
+        webView.setBackgroundColor(Color.TRANSPARENT);
+
+        ///for loading images
+        webView.getSettings().setDomStorageEnabled(true);
+        webView.getSettings().setAppCacheEnabled(true);
+        webView.getSettings().setLoadsImagesAutomatically(true);
+        webView.getSettings().setMixedContentMode(WebSettings.MIXED_CONTENT_ALWAYS_ALLOW);
+
+        webView.setInitialScale(1);
+        webView.getSettings().setLoadWithOverviewMode(true);
+        webView.getSettings().setUseWideViewPort(true);
+        webView.setWebViewClient(new WebViewClient() {
+          @Override
+          public void onPageFinished(WebView view, String url) {
+            super.onPageFinished(view, url);
+            rtmpCamera1.getGlInterface().addFilter(androidViewFilterRender);
+            AndroidViewFilterRender androidViewFilterRender1 = new AndroidViewFilterRender();
+            androidViewFilterRender1.setView(findViewById(R.id.imageView));
+            rtmpCamera1.getGlInterface().addFilter(androidViewFilterRender1);
+            load = true;
+          }
+        });
+        webView.getSettings().setJavaScriptEnabled(true);
+
+        androidViewFilterRender.setView(webView);
+        webView.loadUrl("http://master.d2u7cmbangq1ut.amplifyapp.com/crickslab-graphics/basic/ads.html");
         return true;
       case R.id.basic_deformation:
         rtmpCamera1.getGlInterface().setFilter(new BasicDeformationFilterRender());
@@ -429,7 +466,7 @@ public class OpenGlRtmpActivity extends AppCompatActivity
         break;
       case R.id.switch_camera:
         try {
-          rtmpCamera1.switchCamera();
+          selectImage();
         } catch (CameraOpenException e) {
           Toast.makeText(this, e.getMessage(), Toast.LENGTH_SHORT).show();
         }
@@ -481,9 +518,19 @@ public class OpenGlRtmpActivity extends AppCompatActivity
 
   }
 
+  private boolean load = false;
+
   @Override
   public void surfaceChanged(SurfaceHolder surfaceHolder, int i, int i1, int i2) {
     rtmpCamera1.startPreview();
+    if (load) {
+      AndroidViewFilterRender androidViewFilterRender = new AndroidViewFilterRender();
+      androidViewFilterRender.setView(findViewById(R.id.web_view));
+      rtmpCamera1.getGlInterface().addFilter(androidViewFilterRender);
+      AndroidViewFilterRender androidViewFilterRender1 = new AndroidViewFilterRender();
+      androidViewFilterRender1.setView(findViewById(R.id.imageView));
+      rtmpCamera1.getGlInterface().addFilter(androidViewFilterRender1);
+    }
   }
 
   @Override
@@ -511,5 +558,19 @@ public class OpenGlRtmpActivity extends AppCompatActivity
       return true;
     }
     return false;
+  }
+
+  public void selectImage() {
+    Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
+    intent.setType("image/*");
+    intent.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, false);
+    intent.setAction(Intent.ACTION_GET_CONTENT);
+    startActivityForResult(Intent.createChooser(intent, "Select Picture"), REQUEST_CODE_SELECT_IMAGE);
+  }
+
+  @Override
+  protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
+    super.onActivityResult(requestCode, resultCode, data);
+
   }
 }
