@@ -91,6 +91,7 @@ import com.pedro.encoder.utils.gl.TranslateTo;
 import com.pedro.rtmp.utils.ConnectCheckerRtmp;
 import com.pedro.rtplibrary.rtmp.RtmpCamera1;
 import com.pedro.rtplibrary.rtmp.RtmpCamera2;
+import com.pedro.rtplibrary.view.GlInterface;
 import com.pedro.rtplibrary.view.OpenGlView;
 import com.pedro.rtpstreamer.R;
 import com.pedro.rtpstreamer.utils.PathUtils;
@@ -106,7 +107,7 @@ import java.util.Locale;
  * {@link com.pedro.rtplibrary.base.Camera1Base}
  * {@link com.pedro.rtplibrary.rtmp.RtmpCamera1}
  */
-@RequiresApi(api = Build.VERSION_CODES.JELLY_BEAN_MR2)
+@RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
 public class OpenGlRtmpActivity extends AppCompatActivity
     implements ConnectCheckerRtmp, View.OnClickListener, SurfaceHolder.Callback,
     View.OnTouchListener {
@@ -121,6 +122,10 @@ public class OpenGlRtmpActivity extends AppCompatActivity
   private File folder;
   private OpenGlView openGlView;
   private SpriteGestureController spriteGestureController = new SpriteGestureController();
+  private AndroidViewFilterRender androidViewFilterRender;
+  private WebView webView;
+  private GlInterface glInterface;
+  private boolean isSurfaceViewDestroyed;
 
   @Override
   protected void onCreate(Bundle savedInstanceState) {
@@ -139,6 +144,7 @@ public class OpenGlRtmpActivity extends AppCompatActivity
     etUrl = findViewById(R.id.et_rtp_url);
     etUrl.setHint(R.string.hint_rtmp);
     rtmpCamera1 = new RtmpCamera2(openGlView, this);
+    glInterface = rtmpCamera1.getGlInterface();
     openGlView.getHolder().addCallback(this);
     openGlView.setOnTouchListener(this);
     Log.e("Pedro", "cerate?");
@@ -173,8 +179,8 @@ public class OpenGlRtmpActivity extends AppCompatActivity
         rtmpCamera1.getGlInterface().setFilter(new AnalogTVFilterRender());
         return true;
       case R.id.android_view:
-        AndroidViewFilterRender androidViewFilterRender = new AndroidViewFilterRender();
-        WebView webView = findViewById(R.id.web_view);
+        androidViewFilterRender = new AndroidViewFilterRender();
+        webView = findViewById(R.id.web_view);
         webView.setBackgroundColor(Color.TRANSPARENT);
 
         ///for loading images
@@ -186,18 +192,21 @@ public class OpenGlRtmpActivity extends AppCompatActivity
         webView.setInitialScale(1);
         webView.getSettings().setLoadWithOverviewMode(true);
         webView.getSettings().setUseWideViewPort(true);
+        webView.getSettings().setJavaScriptEnabled(true);
+
+
         webView.setWebViewClient(new WebViewClient() {
           @Override
           public void onPageFinished(WebView view, String url) {
             super.onPageFinished(view, url);
-            rtmpCamera1.getGlInterface().addFilter(androidViewFilterRender);
-            AndroidViewFilterRender androidViewFilterRender1 = new AndroidViewFilterRender();
-            androidViewFilterRender1.setView(findViewById(R.id.imageView));
-            rtmpCamera1.getGlInterface().addFilter(androidViewFilterRender1);
-            load = true;
+            glInterface = rtmpCamera1.getGlInterface();
+            glInterface.addFilter(androidViewFilterRender);
+//            AndroidViewFilterRender androidViewFilterRender1 = new AndroidViewFilterRender();
+//            androidViewFilterRender1.setView(findViewById(R.id.imageView));
+//            rtmpCamera1.getGlInterface().addFilter(androidViewFilterRender1);
+
           }
         });
-        webView.getSettings().setJavaScriptEnabled(true);
 
         androidViewFilterRender.setView(webView);
         webView.loadUrl("http://master.d2u7cmbangq1ut.amplifyapp.com/crickslab-graphics/basic/ads.html");
@@ -518,23 +527,52 @@ public class OpenGlRtmpActivity extends AppCompatActivity
 
   }
 
-  private boolean load = false;
 
   @Override
   public void surfaceChanged(SurfaceHolder surfaceHolder, int i, int i1, int i2) {
-    rtmpCamera1.startPreview();
-    if (load) {
-      AndroidViewFilterRender androidViewFilterRender = new AndroidViewFilterRender();
-      androidViewFilterRender.setView(findViewById(R.id.web_view));
-      rtmpCamera1.getGlInterface().addFilter(androidViewFilterRender);
-      AndroidViewFilterRender androidViewFilterRender1 = new AndroidViewFilterRender();
-      androidViewFilterRender1.setView(findViewById(R.id.imageView));
-      rtmpCamera1.getGlInterface().addFilter(androidViewFilterRender1);
+    rtmpCamera1.startPreview(i1,i2);
+    if (isSurfaceViewDestroyed) {
+      restoreViews();
+    }
+    isSurfaceViewDestroyed = false;
+
+  }
+
+  private void restoreViews() {
+    if (rtmpCamera1 == null) {
+
+      rtmpCamera1 = new RtmpCamera2(openGlView, this);
+      glInterface = rtmpCamera1.getGlInterface();
+      openGlView.getHolder().addCallback(this);
+      openGlView.setOnTouchListener(this);
+    } else {
+      rtmpCamera1.replaceView(openGlView);
+    }
+    if (glInterface != null)
+      if (androidViewFilterRender != null) {
+        glInterface.addFilter(androidViewFilterRender);
+        if (webView != null)
+          androidViewFilterRender.setView(webView);
+      } else Log.e("ResumecrashCheck", " webViewRenderer isNull");
+    else {
+      glInterface = rtmpCamera1.getGlInterface();
+
+      if (glInterface != null && androidViewFilterRender != null) {
+        glInterface.addFilter(androidViewFilterRender);
+        if (webView != null)
+          androidViewFilterRender.setView(webView);
+      } else {
+        Log.e("ReumecrashCheck", "webViewRenderer isNull222");
+      }
+      Log.e("ReumecrashCheck", "glInterface isNull");
     }
   }
 
   @Override
   public void surfaceDestroyed(SurfaceHolder surfaceHolder) {
+    if (glInterface != null)
+      glInterface.clearFilters();
+
     if (rtmpCamera1.isRecording()) {
       rtmpCamera1.stopRecord();
       bRecord.setText(R.string.start_record);
@@ -548,6 +586,7 @@ public class OpenGlRtmpActivity extends AppCompatActivity
       button.setText(getResources().getString(R.string.start_button));
     }
     rtmpCamera1.stopPreview();
+    isSurfaceViewDestroyed = true;
   }
 
   @Override
