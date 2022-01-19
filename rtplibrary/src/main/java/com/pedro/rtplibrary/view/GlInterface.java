@@ -29,6 +29,11 @@ public interface GlInterface {
   void init();
 
   /**
+   * This only should be called inside of CameraBase1 or CameraBase2.
+   */
+  void setOrientationMode(boolean orientationMode);
+
+  /**
    * Set video encoder size use to Opengl
    * @param width video encoder width in px
    * @param height video encoder height in px

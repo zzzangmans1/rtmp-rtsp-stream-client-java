@@ -90,6 +90,7 @@ public abstract class Camera1Base
   protected RecordController recordController;
   private int previewWidth, previewHeight;
   private final FpsListener fpsListener = new FpsListener();
+  private boolean orientationMode = false;
 
   public Camera1Base(SurfaceView surfaceView) {
     context = surfaceView.getContext();
@@ -134,6 +135,14 @@ public abstract class Camera1Base
     videoEncoder = new VideoEncoder(this);
     setMicrophoneMode(MicrophoneMode.ASYNC);
     recordController = new RecordController();
+  }
+
+  /**
+   * Must be called before startPreview, startStream, startRecord and prepareVideo.
+   */
+  public void setOrientationMode(boolean orientationMode) {
+    this.orientationMode = orientationMode;
+    glInterface.setOrientationMode(orientationMode);
   }
 
   /**
@@ -269,9 +278,10 @@ public abstract class Camera1Base
       stopPreview();
       onPreview = true;
     }
+    int r = orientationMode ? 0 : rotation;
     FormatVideoEncoder formatVideoEncoder =
         glInterface == null ? FormatVideoEncoder.YUV420Dynamical : FormatVideoEncoder.SURFACE;
-    return videoEncoder.prepareVideoEncoder(width, height, fps, bitrate, rotation, iFrameInterval,
+    return videoEncoder.prepareVideoEncoder(width, height, fps, bitrate, r, iFrameInterval,
         formatVideoEncoder, avcProfile, avcProfileLevel);
   }
 
@@ -434,6 +444,7 @@ public abstract class Camera1Base
   @RequiresApi(api = Build.VERSION_CODES.JELLY_BEAN_MR2)
   private void replaceGlInterface(GlInterface glInterface) {
     if (this.glInterface != null && Build.VERSION.SDK_INT >= 18) {
+      glInterface.setOrientationMode(orientationMode);
       if (isStreaming() || isRecording() || isOnPreview()) {
         Point size = this.glInterface.getEncoderSize();
         cameraManager.stop();
@@ -475,7 +486,7 @@ public abstract class Camera1Base
       videoEncoder.setFps(fps);
       if (glInterface != null && Build.VERSION.SDK_INT >= 18) {
         boolean isPortrait = CameraHelper.isPortrait(context);
-        if (isPortrait) {
+        if (isPortrait && !orientationMode) {
           glInterface.setEncoderSize(height, width);
         } else {
           glInterface.setEncoderSize(width, height);
@@ -627,7 +638,7 @@ public abstract class Camera1Base
   private void prepareGlView() {
     if (glInterface != null && Build.VERSION.SDK_INT >= 18) {
       glInterface.setFps(videoEncoder.getFps());
-      if (videoEncoder.getRotation() == 90 || videoEncoder.getRotation() == 270) {
+      if (videoEncoder.getRotation() == 90 || videoEncoder.getRotation() == 270 && !orientationMode) {
         glInterface.setEncoderSize(videoEncoder.getHeight(), videoEncoder.getWidth());
       } else {
         glInterface.setEncoderSize(videoEncoder.getWidth(), videoEncoder.getHeight());

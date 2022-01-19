@@ -93,6 +93,7 @@ public abstract class Camera2Base implements GetAacData, GetVideoData, GetMicrop
   protected RecordController recordController;
   private int previewWidth, previewHeight;
   private final FpsListener fpsListener = new FpsListener();
+  private boolean orientationMode = false;
 
   /**
    * @deprecated This view produce rotations problems and could be unsupported in future versions.
@@ -147,6 +148,13 @@ public abstract class Camera2Base implements GetAacData, GetVideoData, GetMicrop
     videoEncoder = new VideoEncoder(this);
     setMicrophoneMode(MicrophoneMode.ASYNC);
     recordController = new RecordController();
+  }
+
+  /**
+   * Must be called before startPreview, startStream, startRecord and prepareVideo.
+   */
+  public void setOrientationMode(boolean orientationMode) {
+    this.orientationMode = orientationMode;
   }
 
   /**
@@ -470,6 +478,7 @@ public abstract class Camera2Base implements GetAacData, GetVideoData, GetMicrop
    */
   private void replaceGlInterface(GlInterface glInterface) {
     if (this.glInterface != null && Build.VERSION.SDK_INT >= 18) {
+      glInterface.setOrientationMode(orientationMode);
       if (isStreaming() || isRecording() || isOnPreview()) {
         Point size = this.glInterface.getEncoderSize();
         cameraManager.closeCamera();

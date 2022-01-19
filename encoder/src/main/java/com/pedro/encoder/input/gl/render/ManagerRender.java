@@ -66,6 +66,10 @@ public class ManagerRender {
     screenRender.initGl(context);
   }
 
+  public void updateScreenSize(int encoderWidth, int encoderHeight) {
+    screenRender.setStreamSize(encoderWidth, encoderHeight);
+  }
+
   public void drawOffScreen() {
     cameraRender.draw();
     for (BaseFilterRender baseFilterRender : filterRenders) baseFilterRender.draw();

@@ -71,6 +71,7 @@ public class OffScreenGlThread
   private final FpsLimiter fpsLimiter = new FpsLimiter();
   private TakePhotoCallback takePhotoCallback;
   private boolean forceRender = false;
+  private boolean orientationMode = false;
 
   public OffScreenGlThread(Context context) {
     this.context = context;
@@ -81,6 +82,11 @@ public class OffScreenGlThread
     if (!initialized) managerRender = new ManagerRender();
     managerRender.setCameraFlip(false, false);
     initialized = true;
+  }
+
+  @Override
+  public void setOrientationMode(boolean orientationMode) {
+    this.orientationMode = orientationMode;
   }
 
   @Override

@@ -106,6 +106,7 @@ class RtpService : Service() {
     fun init(context: Context) {
       contextApp = context
       if (camera2Base == null) camera2Base = RtmpCamera2(context, true, connectCheckerRtp)
+      camera2Base?.glInterface?.setOrientationMode(true)
     }
 
     fun stopStream() {
@@ -186,6 +187,7 @@ class RtpService : Service() {
         RtspCamera2(openGlView, connectCheckerRtp)
       }
     }
+    camera2Base?.glInterface?.setOrientationMode(true)
   }
 
   private fun startStreamRtp(endpoint: String) {

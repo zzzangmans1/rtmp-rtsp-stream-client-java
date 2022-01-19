@@ -22,6 +22,7 @@ import android.content.Intent
 import android.os.Bundle
 import android.view.SurfaceHolder
 import androidx.appcompat.app.AppCompatActivity
+import com.pedro.encoder.input.video.CameraHelper
 import com.pedro.rtpstreamer.R
 import kotlinx.android.synthetic.main.activity_background.*
 
@@ -48,6 +49,11 @@ class BackgroundActivity : AppCompatActivity(), SurfaceHolder.Callback {
   override fun surfaceChanged(holder: SurfaceHolder, p1: Int, p2: Int, p3: Int) {
     RtpService.setView(surfaceView)
     RtpService.startPreview()
+    if (CameraHelper.isPortrait(this)) {
+      surfaceView.setOrientation(90)
+    } else {
+      surfaceView.setOrientation(0)
+    }
   }
 
   override fun surfaceDestroyed(holder: SurfaceHolder) {

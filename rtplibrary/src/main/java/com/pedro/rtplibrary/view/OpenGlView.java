@@ -75,6 +75,16 @@ public class OpenGlView extends OpenGlViewBase {
   }
 
   @Override
+  public void setOrientation(int orientation) {
+    if (managerRender == null) return;
+    if (orientation == 90) {
+      managerRender.updateScreenSize(encoderWidth, encoderHeight);
+    } else {
+      managerRender.updateScreenSize(encoderHeight, encoderWidth);
+    }
+  }
+
+  @Override
   public SurfaceTexture getSurfaceTexture() {
     return managerRender.getSurfaceTexture();
   }

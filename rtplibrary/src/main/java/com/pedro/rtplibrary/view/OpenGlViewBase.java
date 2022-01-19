@@ -68,6 +68,8 @@ public abstract class OpenGlViewBase extends SurfaceView
   protected boolean isStreamHorizontalFlip = false;
   protected boolean isStreamVerticalFlip = false;
   protected boolean forceRender = false;
+  protected boolean orientationMode = false;
+  private int orientation = 0;
 
   public OpenGlViewBase(Context context) {
     super(context);
@@ -77,6 +79,20 @@ public abstract class OpenGlViewBase extends SurfaceView
   public OpenGlViewBase(Context context, AttributeSet attrs) {
     super(context, attrs);
     getHolder().addCallback(this);
+  }
+
+  @Override
+  public void setOrientationMode(boolean orientationMode) {
+    this.orientationMode = orientationMode;
+  }
+
+  public void setOrientation(int orientation) {
+    this.orientation = orientation;
+    if (orientation == 90) {
+      setEncoderSize(encoderWidth, encoderHeight);
+    } else {
+      setEncoderSize(encoderHeight, encoderWidth);
+    }
   }
 
   @Override
