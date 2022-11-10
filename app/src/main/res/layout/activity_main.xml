@@ -5,28 +5,21 @@
     android:layout_height="match_parent"
     android:gravity="center"
     android:orientation="vertical"
+    android:background="@color/white"
     >
 
   <TextView
+      android:layout_gravity="right"
       android:id="@+id/tv_version"
       android:layout_width="wrap_content"
       android:layout_height="wrap_content"
-      android:textColor="@color/appColor"
+      android:textColor="@color/black"
       android:textSize="12sp"
-      android:layout_marginTop="@dimen/grid_2"
-      android:layout_marginLeft="@dimen/grid_2"
-      android:layout_marginRight="@dimen/grid_2"
       />
-  <TextView
-      android:id="@+id/tv_select"
+  <ImageView
       android:layout_width="wrap_content"
       android:layout_height="wrap_content"
-      android:layout_marginTop="@dimen/grid_2"
-      android:layout_marginLeft="@dimen/grid_2"
-      android:layout_marginRight="@dimen/grid_2"
-      android:text="@string/tv_select"
-      android:textColor="@color/appColor"
-      android:textSize="22sp"
+      android:src="@drawable/live_logo"
       />
 
   <GridView
@@ -37,7 +30,7 @@
       android:columnWidth="40dp"
       android:gravity="center"
       android:horizontalSpacing="@dimen/grid_2"
-      android:numColumns="2"
+      android:numColumns="1"
       android:padding="@dimen/grid_2"
       android:stretchMode="columnWidth"
       android:verticalSpacing="@dimen/grid_2"

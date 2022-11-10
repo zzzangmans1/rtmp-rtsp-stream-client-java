@@ -1,9 +1,9 @@
 <resources>
-  <string name="app_name">RTMP-RTSP Streamer</string>
+  <string name="app_name">RTMP Streaming App</string>
   <string name="version">Version: %1$s</string>
 
   <string name="rtsp_streamer">Custom RTSP</string>
-  <string name="rtmp_streamer">Custom RTMP</string>
+  <string name="rtmp_streamer">RTMP 방송 시작</string>
   <string name="default_rtmp">Default RTMP</string>
   <string name="default_rtsp">Default RTSP</string>
   <string name="from_file_rtsp">From file RTSP</string>
@@ -19,15 +19,15 @@
   <string name="cube_test_rtmp">Cube test RTMP</string>
   <string name="rotation_rtmp">Rotation RTMP</string>
 
-  <string name="tv_select">Select your streamer</string>
+  <string name="tv_select">방송시작 버튼을 누르시면 시작됩니다.</string>
   <string name="hint_rtsp">rtsp://yourendpoint</string>
-  <string name="hint_rtmp">rtmp://yourendpoint</string>
-  <string name="start_button">Start stream</string>
-  <string name="stop_button">Stop stream</string>
-  <string name="switch_camera_button">Switch camera</string>
+  <string name="hint_rtmp">rtmp://yourendpoint/application/streamkey</string>
+  <string name="start_button">방송 시작</string>
+  <string name="stop_button">방송 중지</string>
+  <string name="switch_camera_button">카메라 변경</string>
   <string name="select_file">Select file</string>
-  <string name="start_record">Start record</string>
-  <string name="stop_record">Stop record</string>
+  <string name="start_record">녹화 시작</string>
+  <string name="stop_record">녹화 중지</string>
   <string name="resync_file">ReSync file</string>
   <!--menu-->
   <string name="microphone">Microphone</string>
